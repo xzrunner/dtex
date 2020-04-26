@@ -1,0 +1,45 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="pixel">
+      <UniqueIdentifier>{59d00ac3-6360-4190-9e98-ab8dace52ae1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="texture">
+      <UniqueIdentifier>{f9658e88-02a7-4d69-916c-c8094b282ac9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="utility">
+      <UniqueIdentifier>{7ab83ae6-ad48-4726-9fe2-0aef32141232}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\source\PixelBuffer.cpp">
+      <Filter>pixel</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\source\PixelBufferPage.cpp">
+      <Filter>pixel</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\source\TextureBuffer.cpp">
+      <Filter>texture</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\source\TexPacker.cpp">
+      <Filter>utility</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\include\dtex\PixelBuffer.h">
+      <Filter>pixel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\dtex\PixelBufferPage.h">
+      <Filter>pixel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\source\TextureBuffer.h">
+      <Filter>texture</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\dtex\Utility.h">
+      <Filter>utility</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\dtex\TexPacker.h">
+      <Filter>utility</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
