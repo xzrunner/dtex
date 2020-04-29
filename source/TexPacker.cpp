@@ -2,7 +2,7 @@
 
 #include <texpack.h>
 
-namespace dtex3
+namespace dtex
 {
 
 TexPacker::TexPacker(size_t width, size_t height, size_t capacity)
@@ -17,20 +17,27 @@ TexPacker::~TexPacker()
 	}
 }
 
-bool TexPacker::Add(size_t width, size_t height, bool rotate, Rect& ret)
+Quad TexPacker::Add(size_t width, size_t height, bool rotate)
 {
-	if (m_tp) {
-		auto pos = texpack_add(m_tp, width, height, rotate);
-		if (pos) {
-			ret.xmin = pos->r.xmin;
-			ret.ymin = pos->r.ymin;
-			ret.xmax = pos->r.xmax;
-			ret.ymax = pos->r.ymax;
-			return true;
-		}
-	}
+    Quad ret;
 
-	return false;
+    if (!m_tp) {
+        return ret;
+    }
+
+	auto pos = texpack_add(m_tp, width, height, rotate);
+    if (!pos) {
+        return ret;
+    }
+
+    ret.rot = pos->is_rotated;
+
+    ret.rect.xmin = pos->r.xmin;
+    ret.rect.ymin = pos->r.ymin;
+    ret.rect.xmax = pos->r.xmax;
+    ret.rect.ymax = pos->r.ymax;
+
+	return ret;
 }
 
 void TexPacker::Clear()

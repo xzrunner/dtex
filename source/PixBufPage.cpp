@@ -1,4 +1,4 @@
-#include "dtex/PixelBufferPage.h"
+#include "dtex/PixBufPage.h"
 #include "dtex/TexPacker.h"
 
 #include <unirender2/Device.h>
@@ -14,10 +14,10 @@ const int MAX_NODE_SIZE = 512;
 
 }
 
-namespace dtex3
+namespace dtex
 {
 
-PixelBufferPage::PixelBufferPage(const ur2::Device& dev, size_t width, size_t height)
+PixBufPage::PixBufPage(const ur2::Device& dev, size_t width, size_t height)
 	: m_width(width)
 	, m_height(height)
 {
@@ -36,12 +36,12 @@ PixelBufferPage::PixelBufferPage(const ur2::Device& dev, size_t width, size_t he
 	InitDirtyRect();
 }
 
-bool PixelBufferPage::AddToTP(size_t width, size_t height, Rect& ret)
+Quad PixBufPage::AddToTP(size_t width, size_t height)
 {
-	return m_tp->Add(width, height, false, ret);
+	return m_tp->Add(width, height, false);
 }
 
-void PixelBufferPage::Clear()
+void PixBufPage::Clear()
 {
     auto buf_sz = m_width * m_height * 4;
     m_pbuf->ReadFromMemory(nullptr, buf_sz, 0);
@@ -53,7 +53,7 @@ void PixelBufferPage::Clear()
 	InitDirtyRect();
 }
 
-void PixelBufferPage::UpdateBitmap(ur2::Context& ctx, const uint32_t* bitmap, int width,
+void PixBufPage::UpdateBitmap(ur2::Context& ctx, const uint32_t* bitmap, int width,
                                     int height, const Rect& pos, const Rect& dirty_r)
 {
 #ifdef PBO_USE_MAP
@@ -100,7 +100,7 @@ void PixelBufferPage::UpdateBitmap(ur2::Context& ctx, const uint32_t* bitmap, in
 	UpdateDirtyRect(dirty_r);
 }
 
-bool PixelBufferPage::UploadTexture(ur2::Context& ctx)
+bool PixBufPage::UploadTexture(ur2::Context& ctx)
 {
 	if (m_dirty_rect.xmin >= m_dirty_rect.xmax ||
 		m_dirty_rect.ymin >= m_dirty_rect.ymax) {
@@ -128,14 +128,14 @@ bool PixelBufferPage::UploadTexture(ur2::Context& ctx)
 	return true;
 }
 
-void PixelBufferPage::InitDirtyRect()
+void PixBufPage::InitDirtyRect()
 {
 	m_dirty_rect.xmax = m_dirty_rect.ymax = 0;
 	m_dirty_rect.xmin = static_cast<int16_t>(m_width);
 	m_dirty_rect.ymin = static_cast<int16_t>(m_height);
 }
 
-void PixelBufferPage::UpdateDirtyRect(const Rect& r)
+void PixBufPage::UpdateDirtyRect(const Rect& r)
 {
 	if (r.xmin < m_dirty_rect.xmin) {
 		m_dirty_rect.xmin = r.xmin;

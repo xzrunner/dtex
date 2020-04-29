@@ -6,7 +6,7 @@
 
 struct texpack;
 
-namespace dtex3
+namespace dtex
 {
 
 class TexPacker : boost::noncopyable
@@ -15,7 +15,7 @@ public:
 	TexPacker(size_t width, size_t height, size_t capacity);
 	~TexPacker();
 
-	bool Add(size_t width, size_t height, bool rotate, Rect& ret);
+    Quad Add(size_t width, size_t height, bool rotate);
 
 	void Clear();
 

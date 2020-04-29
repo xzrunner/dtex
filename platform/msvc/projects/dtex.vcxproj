@@ -11,17 +11,27 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\include\dtex\TexRenderer.h" />
     <ClInclude Include="..\..\..\include\dtex\PixelBuffer.h" />
-    <ClInclude Include="..\..\..\include\dtex\PixelBufferPage.h" />
+    <ClInclude Include="..\..\..\include\dtex\PixBufPage.h" />
+    <ClInclude Include="..\..\..\include\dtex\TexBufDrawTask.h" />
+    <ClInclude Include="..\..\..\include\dtex\TexBufNode.h" />
+    <ClInclude Include="..\..\..\include\dtex\TexBufPreNode.h" />
     <ClInclude Include="..\..\..\include\dtex\TexPacker.h" />
+    <ClInclude Include="..\..\..\include\dtex\TexBufBlock.h" />
+    <ClInclude Include="..\..\..\include\dtex\TextureBuffer.h" />
     <ClInclude Include="..\..\..\include\dtex\Utility.h" />
-    <ClInclude Include="..\..\..\source\TextureBuffer.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\source\TexRenderer.cpp" />
     <ClCompile Include="..\..\..\source\PixelBuffer.cpp" />
-    <ClCompile Include="..\..\..\source\PixelBufferPage.cpp" />
+    <ClCompile Include="..\..\..\source\PixBufPage.cpp" />
+    <ClCompile Include="..\..\..\source\TexBufDrawTask.cpp" />
+    <ClCompile Include="..\..\..\source\TexBufNode.cpp" />
+    <ClCompile Include="..\..\..\source\TexBufPreNode.cpp" />
     <ClCompile Include="..\..\..\source\TexPacker.cpp" />
     <ClCompile Include="..\..\..\source\TextureBuffer.cpp" />
+    <ClCompile Include="..\..\..\source\TexBufBlock.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectName>1.dtex</ProjectName>

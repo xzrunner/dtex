@@ -7,17 +7,17 @@
 
 namespace ur2 { class Device; class Context; class WritePixelBuffer; }
 
-namespace dtex3
+namespace dtex
 {
 
 class TexPacker;
 
-class PixelBufferPage
+class PixBufPage
 {
 public:
-    PixelBufferPage(const ur2::Device& dev, size_t width, size_t height);
+    PixBufPage(const ur2::Device& dev, size_t width, size_t height);
 
-    bool AddToTP(size_t width, size_t height, Rect& ret);
+    Quad AddToTP(size_t width, size_t height);
 
     void Clear();
 
@@ -43,6 +43,6 @@ private:
 
     Rect m_dirty_rect;
 
-}; // PixelBufferPage
+}; // PixBufPage
 
 }

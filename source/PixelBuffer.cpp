@@ -1,5 +1,6 @@
 #include "dtex/PixelBuffer.h"
-#include "dtex/PixelBufferPage.h"
+#include "dtex/PixBufPage.h"
+#include "dtex/TextureBuffer.h"
 
 #include <assert.h>
 
@@ -11,14 +12,14 @@ const int PADDING = 1;
 
 }
 
-namespace dtex3
+namespace dtex
 {
 
 PixelBuffer::PixelBuffer(const ur2::Device& dev, int width, int height)
     : m_width(width)
     , m_height(height)
 {
-    m_pages.push_back(std::make_unique<PixelBufferPage>(dev, width, height));
+    m_pages.push_back(std::make_unique<PixBufPage>(dev, width, height));
 }
 
 void PixelBuffer::Load(const ur2::Device& dev, ur2::Context& ctx, const uint32_t* bitmap,
@@ -35,20 +36,22 @@ void PixelBuffer::Load(const ur2::Device& dev, ur2::Context& ctx, const uint32_t
 		return;
 	}
 
-	Rect r;
+	Quad dst_pos;
 
 	int page_idx = -1;
-	for (size_t i = 0, n = m_pages.size(); i < n; ++i) {
-		if (m_pages[i]->AddToTP(pw, ph, r)) {
-			page_idx = i;
-			break;
-		}
+	for (size_t i = 0, n = m_pages.size(); i < n; ++i)
+    {
+        dst_pos = m_pages[i]->AddToTP(pw, ph);
+        if (dst_pos.rect.IsValid()) {
+            page_idx = i;
+            break;
+        }
 	}
 	if (page_idx < 0)
 	{
-		auto page = std::make_unique<PixelBufferPage>(dev, m_width, m_height);
-		bool ok = page->AddToTP(pw, ph, r);
-		assert(ok);
+		auto page = std::make_unique<PixBufPage>(dev, m_width, m_height);
+        dst_pos = page->AddToTP(pw, ph);
+        assert(dst_pos.rect.IsValid());
 		page_idx = m_pages.size();
 		m_pages.push_back(std::move(page));
 	}
@@ -64,7 +67,7 @@ void PixelBuffer::Load(const ur2::Device& dev, ur2::Context& ctx, const uint32_t
 	//	}
 	//}
 
-	auto r_no_padding = r;
+	auto r_no_padding = dst_pos.rect;
 	r_no_padding.xmin += PADDING;
 	r_no_padding.ymin += PADDING;
 	r_no_padding.xmax -= PADDING;
@@ -74,10 +77,10 @@ void PixelBuffer::Load(const ur2::Device& dev, ur2::Context& ctx, const uint32_t
 	m_all_nodes.insert({ key, node });
 	m_new_nodes.push_back(node);
 
-	m_pages[page_idx]->UpdateBitmap(ctx, bitmap, width, height, r_no_padding, r);
+	m_pages[page_idx]->UpdateBitmap(ctx, bitmap, width, height, r_no_padding, dst_pos.rect);
 }
 
-bool PixelBuffer::Flush(ur2::Context& ctx)
+bool PixelBuffer::Flush(ur2::Context& ctx, TextureBuffer& tex_buf, TexRenderer& rd)
 {
 	bool dirty = false;
 
@@ -93,18 +96,14 @@ bool PixelBuffer::Flush(ur2::Context& ctx)
 		}
 	}
 
-	//if (cache_to_c2)
-	//{
- //       // todo
-	//	m_cb.load_start();
-	//	for (auto& n : m_new_nodes) {
-	//		int tex_id = m_pages[n.page]->GetTexID();
-	//		m_cb.load(tex_id, m_width, m_height, n.region, n.key);
-	//	}
-	//	m_cb.load_finish();
-
-	//	dirty = true;
-	//}
+    // update to texture buffer
+    tex_buf.LoadStart();
+	for (auto& n : m_new_nodes) {
+        auto tex = m_pages[n.page]->GetTexture();
+        tex_buf.Load(tex, n.region, n.key, 1, 0);
+	}
+    tex_buf.LoadFinish(ctx, rd);
+	dirty = true;
 
 	m_new_nodes.clear();
 

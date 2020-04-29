@@ -1,7 +1,7 @@
 #pragma once
 
 #include "dtex/Utility.h"
-#include "dtex/PixelBufferPage.h"
+#include "dtex/PixBufPage.h"
 
 #include <unirender2/typedef.h>
 
@@ -13,10 +13,12 @@
 
 namespace ur2 { class Device; class Context; }
 
-namespace dtex3
+namespace dtex
 {
 
-class PixelBufferPage;
+class PixBufPage;
+class TextureBuffer;
+class TexRenderer;
 
 class PixelBuffer
 {
@@ -25,7 +27,7 @@ public:
 
     void Load(const ur2::Device& dev, ur2::Context& ctx, const uint32_t* bitmap,
         int width, int height, uint64_t key);
-    bool Flush(ur2::Context& ctx);
+    bool Flush(ur2::Context& ctx, TextureBuffer& tex_buf, TexRenderer& rd);
 
     bool QueryAndInsert(uint64_t key, float* texcoords, ur2::TexturePtr& tex) const;
     bool Exist(uint64_t key) const { return m_all_nodes.find(key) != m_all_nodes.end(); }
@@ -45,7 +47,7 @@ private:
 private:
     int m_width, m_height;
 
-    std::vector<std::unique_ptr<PixelBufferPage>> m_pages;
+    std::vector<std::unique_ptr<PixBufPage>> m_pages;
 
     std::unordered_map<uint64_t, Node> m_all_nodes;
     mutable std::vector<Node>          m_new_nodes;

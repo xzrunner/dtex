@@ -15,13 +15,28 @@
     <ClCompile Include="..\..\..\source\PixelBuffer.cpp">
       <Filter>pixel</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\source\PixelBufferPage.cpp">
-      <Filter>pixel</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\source\TextureBuffer.cpp">
       <Filter>texture</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\source\TexPacker.cpp">
+      <Filter>utility</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\source\PixBufPage.cpp">
+      <Filter>pixel</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\source\TexBufBlock.cpp">
+      <Filter>texture</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\source\TexBufPreNode.cpp">
+      <Filter>texture</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\source\TexBufNode.cpp">
+      <Filter>texture</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\source\TexBufDrawTask.cpp">
+      <Filter>texture</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\source\TexRenderer.cpp">
       <Filter>utility</Filter>
     </ClCompile>
   </ItemGroup>
@@ -29,16 +44,31 @@
     <ClInclude Include="..\..\..\include\dtex\PixelBuffer.h">
       <Filter>pixel</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\include\dtex\PixelBufferPage.h">
-      <Filter>pixel</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\source\TextureBuffer.h">
-      <Filter>texture</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\include\dtex\Utility.h">
       <Filter>utility</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\include\dtex\TexPacker.h">
+      <Filter>utility</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\dtex\PixBufPage.h">
+      <Filter>pixel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\dtex\TexBufBlock.h">
+      <Filter>texture</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\dtex\TexBufPreNode.h">
+      <Filter>texture</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\dtex\TexBufNode.h">
+      <Filter>texture</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\dtex\TextureBuffer.h">
+      <Filter>texture</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\dtex\TexBufDrawTask.h">
+      <Filter>texture</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\dtex\TexRenderer.h">
       <Filter>utility</Filter>
     </ClInclude>
   </ItemGroup>
