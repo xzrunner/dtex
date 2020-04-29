@@ -3,9 +3,9 @@
 #include "dtex/Utility.h"
 #include "dtex/TexPacker.h"
 
-#include <unirender2/typedef.h>
+#include <unirender/typedef.h>
 
-namespace ur2 { class Device; class Context; class WritePixelBuffer; }
+namespace ur { class Device; class Context; class WritePixelBuffer; }
 
 namespace dtex
 {
@@ -15,7 +15,7 @@ class TexPacker;
 class PixBufPage
 {
 public:
-    PixBufPage(const ur2::Device& dev, size_t width, size_t height);
+    PixBufPage(const ur::Device& dev, size_t width, size_t height);
 
     Quad AddToTP(size_t width, size_t height);
 
@@ -25,9 +25,9 @@ public:
     //size_t GetWidth() const { return m_width; }
     //size_t GetHeight() const { return m_height; }
 
-    void UpdateBitmap(ur2::Context& ctx, const uint32_t* bitmap,
+    void UpdateBitmap(ur::Context& ctx, const uint32_t* bitmap,
         int width, int height, const Rect& pos, const Rect& dirty_r);
-    bool UploadTexture(ur2::Context& ctx);
+    bool UploadTexture(ur::Context& ctx);
 
 private:
     void InitDirtyRect();
@@ -36,10 +36,10 @@ private:
 private:
     size_t m_width, m_height;
 
-    ur2::TexturePtr m_tex = nullptr;
+    ur::TexturePtr m_tex = nullptr;
     std::unique_ptr<TexPacker> m_tp = nullptr;
 
-    std::shared_ptr<ur2::WritePixelBuffer> m_pbuf = nullptr;
+    std::shared_ptr<ur::WritePixelBuffer> m_pbuf = nullptr;
 
     Rect m_dirty_rect;
 

@@ -5,16 +5,16 @@
 #include "dtex/TexRenderer.h"
 #include "dtex/TexPacker.h"
 
-#include <unirender2/Device.h>
-#include <unirender2/Texture.h>
-#include <unirender2/TextureDescription.h>
+#include <unirender/Device.h>
+#include <unirender/Texture.h>
+#include <unirender/TextureDescription.h>
 
 #include <assert.h>
 
 namespace dtex
 {
 
-TextureBuffer::TextureBuffer(const ur2::Device& dev, int width, int height)
+TextureBuffer::TextureBuffer(const ur::Device& dev, int width, int height)
 {
     InitTexture(dev, width, height);
     InitBlocks(width, height);
@@ -25,7 +25,7 @@ void TextureBuffer::LoadStart()
     m_loadable++;
 }
 
-void TextureBuffer::Load(const ur2::TexturePtr& tex, const Rect& r, uint64_t key,
+void TextureBuffer::Load(const ur::TexturePtr& tex, const Rect& r, uint64_t key,
                          int padding, int extrude, int src_extrude)
 {
 	if (!tex || tex->GetWidth() <= 0 || tex->GetHeight() <= 0) {
@@ -50,7 +50,7 @@ void TextureBuffer::Load(const ur2::TexturePtr& tex, const Rect& r, uint64_t key
 	m_prenodes.insert(TexBufPreNode(tex, r, key, padding, extrude, src_extrude));
 }
 
-void TextureBuffer::LoadFinish(ur2::Context& ctx, TexRenderer& rd)
+void TextureBuffer::LoadFinish(ur::Context& ctx, TexRenderer& rd)
 {
 	if (--m_loadable > 0 || m_prenodes.empty()) {
 		return;
@@ -125,13 +125,13 @@ TextureBuffer::Query(uint64_t key, int& block_id) const
 	return nullptr;
 }
 
-void TextureBuffer::InitTexture(const ur2::Device& dev, int width, int height)
+void TextureBuffer::InitTexture(const ur::Device& dev, int width, int height)
 {
-    ur2::TextureDescription desc;
-    desc.target = ur2::TextureTarget::Texture2D;
+    ur::TextureDescription desc;
+    desc.target = ur::TextureTarget::Texture2D;
     desc.width  = width;
     desc.height = height;
-    desc.format = ur2::TextureFormat::RGBA8;
+    desc.format = ur::TextureFormat::RGBA8;
     m_tex = dev.CreateTexture(desc);
 }
 
@@ -162,7 +162,7 @@ void TextureBuffer::ClearBlockData()
 	}
 }
 
-void TextureBuffer::ClearBlockTex(ur2::Context& ctx, const TexRenderer& rd, const TexBufBlock& b)
+void TextureBuffer::ClearBlockTex(ur::Context& ctx, const TexRenderer& rd, const TexBufBlock& b)
 {
 	float offx = static_cast<float>(b.OffX()),
 		  offy = static_cast<float>(b.OffY());

@@ -2,7 +2,7 @@
 
 #include "dtex/Utility.h"
 
-#include <unirender2/typedef.h>
+#include <unirender/typedef.h>
 
 namespace dtex
 {
@@ -10,7 +10,7 @@ namespace dtex
 class TexBufNode
 {
 public:
-    TexBufNode(uint64_t key, const ur2::TexturePtr& dst_tex, const Quad& dst_pos);
+    TexBufNode(uint64_t key, const ur::TexturePtr& dst_tex, const Quad& dst_pos);
 
     const float* GetTexcoords() const { return m_texcoords; }
 
@@ -19,7 +19,7 @@ public:
 private:
     uint64_t m_key;
 
-    ur2::TexturePtr m_dst_tex;
+    ur::TexturePtr m_dst_tex;
 
     float m_texcoords[8];
 

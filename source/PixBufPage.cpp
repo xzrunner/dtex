@@ -1,11 +1,11 @@
 #include "dtex/PixBufPage.h"
 #include "dtex/TexPacker.h"
 
-#include <unirender2/Device.h>
-#include <unirender2/Context.h>
-#include <unirender2/TextureDescription.h>
-#include <unirender2/WritePixelBuffer.h>
-#include <unirender2/Texture.h>
+#include <unirender/Device.h>
+#include <unirender/Context.h>
+#include <unirender/TextureDescription.h>
+#include <unirender/WritePixelBuffer.h>
+#include <unirender/Texture.h>
 
 namespace
 {
@@ -17,21 +17,21 @@ const int MAX_NODE_SIZE = 512;
 namespace dtex
 {
 
-PixBufPage::PixBufPage(const ur2::Device& dev, size_t width, size_t height)
+PixBufPage::PixBufPage(const ur::Device& dev, size_t width, size_t height)
 	: m_width(width)
 	, m_height(height)
 {
-    ur2::TextureDescription desc;
-    desc.target = ur2::TextureTarget::Texture2D;
+    ur::TextureDescription desc;
+    desc.target = ur::TextureTarget::Texture2D;
     desc.width  = width;
     desc.height = height;
-    desc.format = ur2::TextureFormat::RGBA8;
+    desc.format = ur::TextureFormat::RGBA8;
     m_tex = dev.CreateTexture(desc);
 
 	m_tp = std::make_unique<TexPacker>(width, height, MAX_NODE_SIZE);
 
     auto buf_sz = width * height * 4;
-    m_pbuf = dev.CreateWritePixelBuffer(ur2::BufferUsageHint::DynamicDraw, buf_sz);
+    m_pbuf = dev.CreateWritePixelBuffer(ur::BufferUsageHint::DynamicDraw, buf_sz);
 
 	InitDirtyRect();
 }
@@ -53,7 +53,7 @@ void PixBufPage::Clear()
 	InitDirtyRect();
 }
 
-void PixBufPage::UpdateBitmap(ur2::Context& ctx, const uint32_t* bitmap, int width,
+void PixBufPage::UpdateBitmap(ur::Context& ctx, const uint32_t* bitmap, int width,
                                     int height, const Rect& pos, const Rect& dirty_r)
 {
 #ifdef PBO_USE_MAP
@@ -100,7 +100,7 @@ void PixBufPage::UpdateBitmap(ur2::Context& ctx, const uint32_t* bitmap, int wid
 	UpdateDirtyRect(dirty_r);
 }
 
-bool PixBufPage::UploadTexture(ur2::Context& ctx)
+bool PixBufPage::UploadTexture(ur::Context& ctx)
 {
 	if (m_dirty_rect.xmin >= m_dirty_rect.xmax ||
 		m_dirty_rect.ymin >= m_dirty_rect.ymax) {

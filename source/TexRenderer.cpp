@@ -1,17 +1,17 @@
 #include "dtex/TexRenderer.h"
 
-#include <unirender2/Device.h>
-#include <unirender2/Context.h>
-#include <unirender2/Texture.h>
-#include <unirender2/ClearState.h>
-#include <unirender2/Framebuffer.h>
-#include <unirender2/DrawState.h>
-#include <unirender2/Factory.h>
-#include <unirender2/VertexArray.h>
-#include <unirender2/IndexBuffer.h>
-#include <unirender2/VertexBuffer.h>
-#include <unirender2/ComponentDataType.h>
-#include <unirender2/VertexBufferAttribute.h>
+#include <unirender/Device.h>
+#include <unirender/Context.h>
+#include <unirender/Texture.h>
+#include <unirender/ClearState.h>
+#include <unirender/Framebuffer.h>
+#include <unirender/DrawState.h>
+#include <unirender/Factory.h>
+#include <unirender/VertexArray.h>
+#include <unirender/IndexBuffer.h>
+#include <unirender/VertexBuffer.h>
+#include <unirender/ComponentDataType.h>
+#include <unirender/VertexBufferAttribute.h>
 
 namespace
 {
@@ -49,7 +49,7 @@ void main()
 namespace dtex
 {
 
-TexRenderer::TexRenderer(const ur2::Device& dev)
+TexRenderer::TexRenderer(const ur::Device& dev)
 {
     m_shader = dev.CreateShaderProgram(vs, fs);
     m_rt = dev.CreateFramebuffer();
@@ -57,8 +57,8 @@ TexRenderer::TexRenderer(const ur2::Device& dev)
     InitVertexArray(dev);
 }
 
-void TexRenderer::Draw(ur2::Context& ctx, const ur2::TexturePtr& src, const Rect& src_r,
-                       const ur2::TexturePtr& dst, const Rect& dst_r, bool rotate)
+void TexRenderer::Draw(ur::Context& ctx, const ur::TexturePtr& src, const Rect& src_r,
+                       const ur::TexturePtr& dst, const Rect& dst_r, bool rotate)
 {
     if (dst != m_dst_texture || src != m_src_texture)
     {
@@ -104,14 +104,14 @@ void TexRenderer::Draw(ur2::Context& ctx, const ur2::TexturePtr& src, const Rect
     m_vert_buf.AddQuad(vertices, texcoords);
 }
 
-void TexRenderer::Flush(ur2::Context& ctx)
+void TexRenderer::Flush(ur::Context& ctx)
 {
     if (m_vert_buf.IsEmpty()) {
         return;
     }
 
-    const auto type = ur2::AttachmentType::Color0;
-    m_rt->SetAttachment(type, ur2::TextureTarget::Texture2D, m_dst_texture, nullptr);
+    const auto type = ur::AttachmentType::Color0;
+    m_rt->SetAttachment(type, ur::TextureTarget::Texture2D, m_dst_texture, nullptr);
     if (!ctx.CheckRenderTargetStatus()) {
         return;
     }
@@ -132,9 +132,9 @@ void TexRenderer::Flush(ur2::Context& ctx)
 
     m_va->SetVertexBufferAttrs({
         // pos
-        std::make_shared<ur2::VertexBufferAttribute>(ur2::ComponentDataType::Float, 2, 0, 16),
+        std::make_shared<ur::VertexBufferAttribute>(ur::ComponentDataType::Float, 2, 0, 16),
         // uv
-        std::make_shared<ur2::VertexBufferAttribute>(ur2::ComponentDataType::Float, 2, 8, 16)
+        std::make_shared<ur::VertexBufferAttribute>(ur::ComponentDataType::Float, 2, 8, 16)
     });
 
     int x, y, w, h;
@@ -145,31 +145,31 @@ void TexRenderer::Flush(ur2::Context& ctx)
 
     ctx.SetTexture(0, m_src_texture);
 
-    auto rs = ur2::DefaultRenderState2D();
-    rs.blending.src = ur2::BlendingFactor::One;
+    auto rs = ur::DefaultRenderState2D();
+    rs.blending.src = ur::BlendingFactor::One;
 
-    ur2::DrawState ds;
+    ur::DrawState ds;
     ds.program      = m_shader;
     ds.render_state = rs;
     ds.vertex_array = m_va;
-    ctx.Draw(ur2::PrimitiveType::Triangles, ds, nullptr);
+    ctx.Draw(ur::PrimitiveType::Triangles, ds, nullptr);
 
     ctx.SetFramebuffer(nullptr);
     ctx.SetViewport(x, y, w, h);
 }
 
-void TexRenderer::ClearTex(ur2::Context& ctx, const ur2::TexturePtr& tex,
+void TexRenderer::ClearTex(ur::Context& ctx, const ur::TexturePtr& tex,
                            float xmin, float ymin, float xmax, float ymax) const
 {
-    const auto type = ur2::AttachmentType::Color0;
-    m_rt->SetAttachment(type, ur2::TextureTarget::Texture2D, tex, nullptr);
+    const auto type = ur::AttachmentType::Color0;
+    m_rt->SetAttachment(type, ur::TextureTarget::Texture2D, tex, nullptr);
     if (!ctx.CheckRenderTargetStatus()) {
         return;
     }
 
     ctx.SetFramebuffer(m_rt);
 
-    ur2::ClearState cs;
+    ur::ClearState cs;
 
     cs.scissor_test.enabled = true;
 	int w = tex->GetWidth(),
@@ -184,32 +184,32 @@ void TexRenderer::ClearTex(ur2::Context& ctx, const ur2::TexturePtr& tex,
     ctx.Clear(cs);
 }
 
-void TexRenderer::ClearAllTex(ur2::Context& ctx, const ur2::TexturePtr& tex) const
+void TexRenderer::ClearAllTex(ur::Context& ctx, const ur::TexturePtr& tex) const
 {
-    const auto type = ur2::AttachmentType::Color0;
-    m_rt->SetAttachment(type, ur2::TextureTarget::Texture2D, tex, nullptr);
+    const auto type = ur::AttachmentType::Color0;
+    m_rt->SetAttachment(type, ur::TextureTarget::Texture2D, tex, nullptr);
     if (!ctx.CheckRenderTargetStatus()) {
         return;
     }
 
     ctx.SetFramebuffer(m_rt);
 
-    ur2::ClearState cs;
+    ur::ClearState cs;
     cs.color.FromRGBA(0);
 
     ctx.Clear(cs);
 }
 
-void TexRenderer::InitVertexArray(const ur2::Device& dev)
+void TexRenderer::InitVertexArray(const ur::Device& dev)
 {
     m_va = dev.CreateVertexArray();
 
-    auto usage = ur2::BufferUsageHint::StaticDraw;
+    auto usage = ur::BufferUsageHint::StaticDraw;
 
     auto ibuf = dev.CreateIndexBuffer(usage, 0);
     m_va->SetIndexBuffer(ibuf);
 
-    auto vbuf = dev.CreateVertexBuffer(ur2::BufferUsageHint::StaticDraw, 0);
+    auto vbuf = dev.CreateVertexBuffer(ur::BufferUsageHint::StaticDraw, 0);
     m_va->SetVertexBuffer(vbuf);
 }
 

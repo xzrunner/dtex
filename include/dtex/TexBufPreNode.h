@@ -2,7 +2,7 @@
 
 #include "dtex/Utility.h"
 
-#include <unirender2/typedef.h>
+#include <unirender/typedef.h>
 
 namespace dtex
 {
@@ -10,7 +10,7 @@ namespace dtex
 class TexBufPreNode
 {
 public:
-	TexBufPreNode(const ur2::TexturePtr& tex, const Rect& r, uint64_t key,
+	TexBufPreNode(const ur::TexturePtr& tex, const Rect& r, uint64_t key,
         int padding, int extrude, int src_extrude);
 
 	bool operator == (const TexBufPreNode& node) const { return m_key == node.m_key; }
@@ -37,7 +37,7 @@ private:
 	}
 
 private:
-    ur2::TexturePtr m_tex = nullptr;
+    ur::TexturePtr m_tex = nullptr;
 	Rect m_rect;
 
 	uint64_t m_key;

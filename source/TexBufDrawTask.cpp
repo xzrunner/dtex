@@ -2,12 +2,12 @@
 #include "dtex/TexBufPreNode.h"
 #include "dtex/TexRenderer.h"
 
-#include <unirender2/Texture.h>
+#include <unirender/Texture.h>
 
 namespace dtex
 {
 
-TexBufDrawTask::TexBufDrawTask(const ur2::TexturePtr& tex, const std::shared_ptr<TexBufBlock>& block,
+TexBufDrawTask::TexBufDrawTask(const ur::TexturePtr& tex, const std::shared_ptr<TexBufBlock>& block,
                                const TexBufPreNode& pn, const Rect& src, const Quad& dst)
 	: m_tex(tex)
 	, m_block(block)
@@ -28,7 +28,7 @@ bool TexBufDrawTask::operator < (const TexBufDrawTask& node) const
     return m_pn.GetTexture()->GetTexID() < node.m_pn.GetTexture()->GetTexID();
 }
 
-bool TexBufDrawTask::Draw(ur2::Context& ctx, TexRenderer& rd) const
+bool TexBufDrawTask::Draw(ur::Context& ctx, TexRenderer& rd) const
 {
     rd.Draw(ctx, m_pn.GetTexture(), m_src, m_tex, m_dst, m_rotate);
 	if (m_pn.Extrude() != 0) {
@@ -37,7 +37,7 @@ bool TexBufDrawTask::Draw(ur2::Context& ctx, TexRenderer& rd) const
 	return true;
 }
 
-bool TexBufDrawTask::DrawExtrude(ur2::Context& ctx, TexRenderer& rd, const ur2::TexturePtr& src_tex, const Rect& src_r,
+bool TexBufDrawTask::DrawExtrude(ur::Context& ctx, TexRenderer& rd, const ur::TexturePtr& src_tex, const Rect& src_r,
                                  const Rect& dst_r, bool rotate, int extrude) const
 {
 	static const int SRC_EXTRUDE = 1;

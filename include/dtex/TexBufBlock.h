@@ -2,7 +2,7 @@
 
 #include "dtex/TexBufPreNode.h"
 
-#include <unirender2/typedef.h>
+#include <unirender/typedef.h>
 
 #include <unordered_map>
 
@@ -14,7 +14,7 @@ class TexPacker;
 class TexBufBlock
 {
 public:
-	TexBufBlock(const ur2::TexturePtr& tex, int x, int y, int w, int h);
+	TexBufBlock(const ur::TexturePtr& tex, int x, int y, int w, int h);
 
 	bool operator == (const TexBufBlock& block) const {
 		return m_x == block.m_x && m_y == block.m_y;
@@ -34,7 +34,7 @@ public:
 	int OffY() const { return m_y; }
 
 private:
-    ur2::TexturePtr m_tex = nullptr;
+    ur::TexturePtr m_tex = nullptr;
 
 	int m_x, m_y;
 

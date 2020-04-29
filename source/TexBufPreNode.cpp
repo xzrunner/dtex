@@ -3,7 +3,7 @@
 namespace dtex
 {
 
-TexBufPreNode::TexBufPreNode(const ur2::TexturePtr& tex, const Rect& r, uint64_t key, int padding, int extrude, int src_extrude)
+TexBufPreNode::TexBufPreNode(const ur::TexturePtr& tex, const Rect& r, uint64_t key, int padding, int extrude, int src_extrude)
 	: m_tex(tex)
 	, m_rect(r)
 	, m_key(key)

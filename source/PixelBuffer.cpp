@@ -15,14 +15,14 @@ const int PADDING = 1;
 namespace dtex
 {
 
-PixelBuffer::PixelBuffer(const ur2::Device& dev, int width, int height)
+PixelBuffer::PixelBuffer(const ur::Device& dev, int width, int height)
     : m_width(width)
     , m_height(height)
 {
     m_pages.push_back(std::make_unique<PixBufPage>(dev, width, height));
 }
 
-void PixelBuffer::Load(const ur2::Device& dev, ur2::Context& ctx, const uint32_t* bitmap,
+void PixelBuffer::Load(const ur::Device& dev, ur::Context& ctx, const uint32_t* bitmap,
                        int width, int height, uint64_t key)
 {
 	int pw = width + PADDING * 2;
@@ -80,7 +80,7 @@ void PixelBuffer::Load(const ur2::Device& dev, ur2::Context& ctx, const uint32_t
 	m_pages[page_idx]->UpdateBitmap(ctx, bitmap, width, height, r_no_padding, dst_pos.rect);
 }
 
-bool PixelBuffer::Flush(ur2::Context& ctx, TextureBuffer& tex_buf, TexRenderer& rd)
+bool PixelBuffer::Flush(ur::Context& ctx, TextureBuffer& tex_buf, TexRenderer& rd)
 {
 	bool dirty = false;
 
@@ -114,7 +114,7 @@ bool PixelBuffer::Flush(ur2::Context& ctx, TextureBuffer& tex_buf, TexRenderer& 
 	return dirty;
 }
 
-bool PixelBuffer::QueryAndInsert(uint64_t key, float* texcoords, ur2::TexturePtr& tex) const
+bool PixelBuffer::QueryAndInsert(uint64_t key, float* texcoords, ur::TexturePtr& tex) const
 {
 	auto itr = m_all_nodes.find(key);
 	if (itr == m_all_nodes.end()) {
@@ -148,7 +148,7 @@ bool PixelBuffer::QueryAndInsert(uint64_t key, float* texcoords, ur2::TexturePtr
 //	h = p->GetHeight();
 //}
 //
-//bool PixelBuffer::QueryRegion(uint64_t key, ur2::TexturePtr& tex, int& xmin, int& ymin, int& xmax, int& ymax) const
+//bool PixelBuffer::QueryRegion(uint64_t key, ur::TexturePtr& tex, int& xmin, int& ymin, int& xmax, int& ymax) const
 //{
 //	auto itr = m_all_nodes.find(key);
 //	if (itr == m_all_nodes.end()) {

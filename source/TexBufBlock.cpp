@@ -11,7 +11,7 @@ const int MAX_BLOCK_PRELOAD_COUNT = 1024;
 namespace dtex
 {
 
-TexBufBlock::TexBufBlock(const ur2::TexturePtr& tex, int x, int y, int w, int h)
+TexBufBlock::TexBufBlock(const ur::TexturePtr& tex, int x, int y, int w, int h)
 	: m_tex(tex)
 	, m_x(x)
 	, m_y(y)

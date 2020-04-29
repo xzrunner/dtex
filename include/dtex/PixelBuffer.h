@@ -3,7 +3,7 @@
 #include "dtex/Utility.h"
 #include "dtex/PixBufPage.h"
 
-#include <unirender2/typedef.h>
+#include <unirender/typedef.h>
 
 #include <memory>
 #include <vector>
@@ -11,7 +11,7 @@
 
 #include <stdint.h>
 
-namespace ur2 { class Device; class Context; }
+namespace ur { class Device; class Context; }
 
 namespace dtex
 {
@@ -23,17 +23,17 @@ class TexRenderer;
 class PixelBuffer
 {
 public:
-    PixelBuffer(const ur2::Device& dev, int width, int height);
+    PixelBuffer(const ur::Device& dev, int width, int height);
 
-    void Load(const ur2::Device& dev, ur2::Context& ctx, const uint32_t* bitmap,
+    void Load(const ur::Device& dev, ur::Context& ctx, const uint32_t* bitmap,
         int width, int height, uint64_t key);
-    bool Flush(ur2::Context& ctx, TextureBuffer& tex_buf, TexRenderer& rd);
+    bool Flush(ur::Context& ctx, TextureBuffer& tex_buf, TexRenderer& rd);
 
-    bool QueryAndInsert(uint64_t key, float* texcoords, ur2::TexturePtr& tex) const;
+    bool QueryAndInsert(uint64_t key, float* texcoords, ur::TexturePtr& tex) const;
     bool Exist(uint64_t key) const { return m_all_nodes.find(key) != m_all_nodes.end(); }
 
     //void GetFirstPageTexInfo(int& id, size_t& w, size_t& h) const;
-    //bool QueryRegion(uint64_t key, ur2::TexturePtr& tex, int& xmin, int& ymin, int& xmax, int& ymax) const;
+    //bool QueryRegion(uint64_t key, ur::TexturePtr& tex, int& xmin, int& ymin, int& xmax, int& ymax) const;
 
 private:
     struct Node

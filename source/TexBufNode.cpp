@@ -1,11 +1,11 @@
 #include "dtex/TexBufNode.h"
 
-#include <unirender2/Texture.h>
+#include <unirender/Texture.h>
 
 namespace dtex
 {
 
-TexBufNode::TexBufNode(uint64_t key, const ur2::TexturePtr& dst_tex, const Quad& dst_pos)
+TexBufNode::TexBufNode(uint64_t key, const ur::TexturePtr& dst_tex, const Quad& dst_pos)
 	: m_key(key)
 	, m_dst_tex(dst_tex)
 {
