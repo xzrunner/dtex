@@ -112,9 +112,6 @@ void TexRenderer::Flush(ur::Context& ctx)
 
     const auto type = ur::AttachmentType::Color0;
     m_rt->SetAttachment(type, ur::TextureTarget::Texture2D, m_dst_texture, nullptr);
-    if (!ctx.CheckRenderTargetStatus()) {
-        return;
-    }
 
     auto ibuf_sz = sizeof(unsigned short) * m_vert_buf.indices.size();
     auto ibuf = m_va->GetIndexBuffer();
