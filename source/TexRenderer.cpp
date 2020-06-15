@@ -128,10 +128,8 @@ void TexRenderer::Flush(ur::Context& ctx)
     m_vert_buf.Clear();
 
     m_va->SetVertexBufferAttrs({
-        // pos
-        std::make_shared<ur::VertexBufferAttribute>(ur::ComponentDataType::Float, 2, 0, 16),
-        // uv
-        std::make_shared<ur::VertexBufferAttribute>(ur::ComponentDataType::Float, 2, 8, 16)
+        std::make_shared<ur::VertexBufferAttribute>(0, ur::ComponentDataType::Float, 2, 0, 16),
+        std::make_shared<ur::VertexBufferAttribute>(1, ur::ComponentDataType::Float, 2, 8, 16)
     });
 
     int x, y, w, h;
