@@ -56,6 +56,10 @@ void PixBufPage::Clear()
 void PixBufPage::UpdateBitmap(ur::Context& ctx, const uint32_t* bitmap, int width,
                                     int height, const Rect& pos, const Rect& dirty_r)
 {
+	if (!m_pbuf) {
+		return;
+	}
+
 #ifdef PBO_USE_MAP
 	uint32_t* bmp_buf = reinterpret_cast<uint32_t*>(m_pbuf->Map());
 
