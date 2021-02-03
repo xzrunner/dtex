@@ -1,0 +1,75 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="pixel">
+      <UniqueIdentifier>{419dccbd-d285-46cd-b7c1-8dffe2fa9ca0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="texture">
+      <UniqueIdentifier>{0a76084f-f6f4-4c59-a862-69d0948b5c41}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="utility">
+      <UniqueIdentifier>{281b7ac1-6c77-4a34-a4b0-09613a4005ba}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\source\PixelBuffer.cpp">
+      <Filter>pixel</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\source\PixBufPage.cpp">
+      <Filter>pixel</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\source\TextureBuffer.cpp">
+      <Filter>texture</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\source\TexBufPreNode.cpp">
+      <Filter>texture</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\source\TexBufDrawTask.cpp">
+      <Filter>texture</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\source\TexBufNode.cpp">
+      <Filter>texture</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\source\TexBufBlock.cpp">
+      <Filter>texture</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\source\TexRenderer.cpp">
+      <Filter>utility</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\source\TexPacker.cpp">
+      <Filter>utility</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\include\dtex\PixelBuffer.h">
+      <Filter>pixel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\dtex\PixBufPage.h">
+      <Filter>pixel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\dtex\TextureBuffer.h">
+      <Filter>texture</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\dtex\TexBufPreNode.h">
+      <Filter>texture</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\dtex\TexBufDrawTask.h">
+      <Filter>texture</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\dtex\TexBufNode.h">
+      <Filter>texture</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\dtex\TexBufBlock.h">
+      <Filter>texture</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\dtex\TexRenderer.h">
+      <Filter>utility</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\dtex\TexPacker.h">
+      <Filter>utility</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\dtex\Utility.h">
+      <Filter>utility</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

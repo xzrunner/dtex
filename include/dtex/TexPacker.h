@@ -2,14 +2,14 @@
 
 #include "dtex/Utility.h"
 
-#include <boost/noncopyable.hpp>
+#include <unirender/noncopyable.h>
 
 struct texpack;
 
 namespace dtex
 {
 
-class TexPacker : boost::noncopyable
+class TexPacker : ur::noncopyable
 {
 public:
 	TexPacker(size_t width, size_t height, size_t capacity);
