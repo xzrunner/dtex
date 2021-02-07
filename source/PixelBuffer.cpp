@@ -1,6 +1,7 @@
 #include "dtex/PixelBuffer.h"
 #include "dtex/PixBufPage.h"
 #include "dtex/TextureBuffer.h"
+#include "dtex/PixBufPage.h"
 
 #include <assert.h>
 
@@ -20,6 +21,10 @@ PixelBuffer::PixelBuffer(const ur::Device& dev, int width, int height)
     , m_height(height)
 {
     m_pages.push_back(std::make_unique<PixBufPage>(dev, width, height));
+}
+
+PixelBuffer::~PixelBuffer()
+{
 }
 
 void PixelBuffer::Load(const ur::Device& dev, ur::Context& ctx, const uint32_t* bitmap,
@@ -166,5 +171,9 @@ bool PixelBuffer::QueryAndInsert(uint64_t key, float* texcoords, ur::TexturePtr&
 //	return true;
 //}
 
+ur::TexturePtr PixelBuffer::GetFirstPageTex() const
+{
+	return m_pages.empty() ? nullptr : m_pages[0]->GetTexture();
+}
 
 }

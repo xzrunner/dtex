@@ -1,7 +1,6 @@
 #pragma once
 
 #include "dtex/Utility.h"
-#include "dtex/PixBufPage.h"
 
 #include <unirender/typedef.h>
 
@@ -24,6 +23,7 @@ class PixelBuffer
 {
 public:
     PixelBuffer(const ur::Device& dev, int width, int height);
+    ~PixelBuffer();
 
     void Load(const ur::Device& dev, ur::Context& ctx, const uint32_t* bitmap,
         int width, int height, uint64_t key);
@@ -32,6 +32,7 @@ public:
     bool QueryAndInsert(uint64_t key, float* texcoords, ur::TexturePtr& tex) const;
     bool Exist(uint64_t key) const { return m_all_nodes.find(key) != m_all_nodes.end(); }
 
+    ur::TexturePtr GetFirstPageTex() const;
     //void GetFirstPageTexInfo(int& id, size_t& w, size_t& h) const;
     //bool QueryRegion(uint64_t key, ur::TexturePtr& tex, int& xmin, int& ymin, int& xmax, int& ymax) const;
 
