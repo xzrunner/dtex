@@ -120,13 +120,14 @@ void TexRenderer::Flush(ur::Context& ctx)
 
     auto ibuf_sz = sizeof(unsigned short) * m_vert_buf.indices.size();
     auto ibuf = m_va->GetIndexBuffer();
-    ibuf->Reset(ibuf_sz);
+    ibuf->SetCount(m_vert_buf.indices.size());
+    ibuf->Reserve(ibuf_sz);
     ibuf->ReadFromMemory(m_vert_buf.indices.data(), ibuf_sz, 0);
     m_va->SetIndexBuffer(ibuf);
 
     auto vbuf_sz = sizeof(Vertex) * m_vert_buf.vertices.size();
     auto vbuf = m_va->GetVertexBuffer();
-    vbuf->Reset(vbuf_sz);
+    vbuf->Reserve(vbuf_sz);
     vbuf->ReadFromMemory(m_vert_buf.vertices.data(), vbuf_sz, 0);
     m_va->SetVertexBuffer(vbuf);
 
