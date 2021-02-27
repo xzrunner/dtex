@@ -121,13 +121,13 @@
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <Optimization>Disabled</Optimization>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
-      <PreprocessorDefinitions>NO_BOOST</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;NO_BOOST</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <AdditionalIncludeDirectories>..\..\..\include;..\..\..\..\unirender\include;..\..\..\..\shadertrans\include;..\..\..\..\texpack</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>NO_BOOST</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;NO_BOOST</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
