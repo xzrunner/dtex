@@ -145,6 +145,7 @@ void TexRenderer::Flush(ur::Context& ctx)
     ctx.SetViewport(0, 0, m_dst_texture->GetWidth(), m_dst_texture->GetHeight());
 
     ctx.SetTexture(0, m_src_texture);
+    ctx.SetTextureSampler(0, nullptr);
 
     auto rs = ur::DefaultRenderState2D();
     rs.blending.src = ur::BlendingFactor::One;
