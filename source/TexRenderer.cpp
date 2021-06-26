@@ -53,8 +53,8 @@ namespace dtex
 TexRenderer::TexRenderer(const ur::Device& dev)
 {
     std::vector<unsigned int> _vs, _fs;
-    shadertrans::ShaderTrans::GLSL2SpirV(shadertrans::ShaderStage::VertexShader, vs, _vs);
-    shadertrans::ShaderTrans::GLSL2SpirV(shadertrans::ShaderStage::PixelShader, fs, _fs);
+    shadertrans::ShaderTrans::GLSL2SpirV(shadertrans::ShaderStage::VertexShader, vs, nullptr, _vs);
+    shadertrans::ShaderTrans::GLSL2SpirV(shadertrans::ShaderStage::PixelShader, fs, nullptr, _fs);
     m_shader = dev.CreateShaderProgram(_vs, _fs);
 
     m_rt = dev.CreateFramebuffer();
