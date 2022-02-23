@@ -124,6 +124,7 @@ bool PixBufPage::UploadTexture(ur::Context& ctx)
     m_pbuf->Bind();
 #endif // PBO_USE_MAP
     m_tex->Upload(reinterpret_cast<void*>(offset), x, y, w, h);
+	m_pbuf->UnBind();
 
     ctx.SetUnpackRowLength(0);
 
