@@ -1,7 +1,0 @@
-dtex/
-projects/*
-
-!projects/dtex.vcxproj
-!projects/dtex.vcxproj.filters
-!projects/dtex_new.vcxproj
-!projects/dtex_new.vcxproj.filters

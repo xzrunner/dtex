@@ -1,0 +1,9 @@
+[submodule "external/unirender"]
+	path = external/unirender
+	url = git@github.com:xzrunner/unirender.git
+[submodule "external/texpack"]
+	path = external/texpack
+	url = git@github.com:xzrunner/texpack.git
+[submodule "external/shadertrans"]
+	path = external/shadertrans
+	url = git@github.com:xzrunner/shadertrans.git
