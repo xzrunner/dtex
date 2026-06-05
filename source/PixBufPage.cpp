@@ -7,6 +7,8 @@
 #include <unirender/WritePixelBuffer.h>
 #include <unirender/Texture.h>
 
+#include <cstring>
+
 namespace
 {
 
@@ -32,6 +34,10 @@ PixBufPage::PixBufPage(const ur::Device& dev, size_t width, size_t height)
 
     auto buf_sz = width * height * 4;
     m_pbuf = dev.CreateWritePixelBuffer(ur::BufferUsageHint::DynamicDraw, buf_sz);
+    if (!m_pbuf) {
+        // Metal: no PBO -> stage glyph pixels on the CPU and upload directly.
+        m_cpu_buf.assign(buf_sz, 0);
+    }
 
 	InitDirtyRect();
 }
@@ -44,7 +50,11 @@ Quad PixBufPage::AddToTP(size_t width, size_t height)
 void PixBufPage::Clear()
 {
     auto buf_sz = m_width * m_height * 4;
-    m_pbuf->ReadFromMemory(nullptr, buf_sz, 0);
+    if (m_pbuf) {
+        m_pbuf->ReadFromMemory(nullptr, buf_sz, 0);
+    } else if (!m_cpu_buf.empty()) {
+        memset(m_cpu_buf.data(), 0, m_cpu_buf.size());
+    }
 
     m_tex->Upload(nullptr, 0, 0, m_width, m_height);
 
@@ -56,7 +66,7 @@ void PixBufPage::Clear()
 void PixBufPage::UpdateBitmap(ur::Context& ctx, const uint32_t* bitmap, int width,
                                     int height, const Rect& pos, const Rect& dirty_r)
 {
-	if (!m_pbuf) {
+	if (!m_pbuf && m_cpu_buf.empty()) {
 		return;
 	}
 
@@ -91,7 +101,12 @@ void PixBufPage::UpdateBitmap(ur::Context& ctx, const uint32_t* bitmap, int widt
 			uint8_t a = src & 0xff;
 			line_buf[x] = a << 24 | b << 16 | g << 8 | r;
 		}
-        m_pbuf->ReadFromMemory(line_buf, width * 4, ((pos.ymin + y) * m_width + pos.xmin) * 4);
+        size_t off = ((pos.ymin + y) * m_width + pos.xmin) * 4;
+        if (m_pbuf) {
+            m_pbuf->ReadFromMemory(line_buf, width * 4, off);
+        } else {
+            memcpy(m_cpu_buf.data() + off, line_buf, width * 4);
+        }
 	}
 
     //ctx.SetUnpackRowLength(width);
@@ -115,6 +130,17 @@ bool PixBufPage::UploadTexture(ur::Context& ctx)
 		y = m_dirty_rect.ymin;
 	int w = m_dirty_rect.xmax - m_dirty_rect.xmin,
 		h = m_dirty_rect.ymax - m_dirty_rect.ymin;
+
+	if (!m_pbuf) {
+		// Metal: no PBO. Upload the whole page from the CPU stage; its rows are
+		// m_width wide so they are tight for a full-page replaceRegion. (A dirty
+		// sub-rect would need a per-row copy because Texture::Upload assumes tight
+		// rows; uploading the full page each new-glyph batch is simpler and cheap.)
+		m_tex->Upload(m_cpu_buf.data(), 0, 0, (int)m_width, (int)m_height);
+		InitDirtyRect();
+		return true;
+	}
+
 	ctx.SetUnpackRowLength(m_width);
 	int offset = (y * m_width + x) * 4;
 

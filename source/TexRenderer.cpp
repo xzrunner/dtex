@@ -77,9 +77,20 @@ void TexRenderer::Draw(ur::Context& ctx, const ur::TexturePtr& src, const Rect& 
 	float w_inv = 1.0f / dst->GetWidth(),
 		  h_inv = 1.0f / dst->GetHeight();
 	float dst_xmin = dst_r.xmin * w_inv * 2 - 1,
-		  dst_xmax = dst_r.xmax * w_inv * 2 - 1,
-		  dst_ymin = dst_r.ymin * h_inv * 2 - 1,
+		  dst_xmax = dst_r.xmax * w_inv * 2 - 1;
+#ifdef __APPLE__
+	// Metal render-to-texture has a top-left origin (OpenGL is bottom-left), so the
+	// same NDC y lands on the opposite texture row. The texpacker computes sampling
+	// UVs as y/height (V=0 at the top), so flip the destination NDC y here to keep
+	// the rendered rows and the sampled UVs in agreement -- otherwise every packed
+	// region (the palette white texel + every glyph) ends up vertically mirrored and
+	// is sampled as black.
+	float dst_ymin = 1.0f - dst_r.ymin * h_inv * 2,
+		  dst_ymax = 1.0f - dst_r.ymax * h_inv * 2;
+#else
+	float dst_ymin = dst_r.ymin * h_inv * 2 - 1,
 		  dst_ymax = dst_r.ymax * h_inv * 2 - 1;
+#endif
 	vertices[0] = dst_xmin; vertices[1] = dst_ymin;
 	vertices[2] = dst_xmax; vertices[3] = dst_ymin;
 	vertices[4] = dst_xmax; vertices[5] = dst_ymax;

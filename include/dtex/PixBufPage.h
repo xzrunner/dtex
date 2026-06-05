@@ -5,6 +5,9 @@
 
 #include <unirender/typedef.h>
 
+#include <vector>
+#include <cstdint>
+
 namespace ur { class Device; class Context; class WritePixelBuffer; }
 
 namespace dtex
@@ -40,6 +43,9 @@ private:
     std::unique_ptr<TexPacker> m_tp = nullptr;
 
     std::shared_ptr<ur::WritePixelBuffer> m_pbuf = nullptr;
+    // Metal has no PBO (CreateWritePixelBuffer returns null), so glyph pixels are
+    // staged here on the CPU and uploaded to m_tex directly.
+    std::vector<uint8_t> m_cpu_buf;
 
     Rect m_dirty_rect;
 
