@@ -1,5 +1,6 @@
 #pragma once
 
+#include "dtex/TexBufPreNode.h"
 #include "dtex/Utility.h"
 
 #include <unirender/typedef.h>
@@ -10,14 +11,13 @@ namespace dtex
 {
 
 class TexBufBlock;
-class TexBufPreNode;
 class TexRenderer;
 
 class TexBufDrawTask
 {
 public:
 	TexBufDrawTask(const ur::TexturePtr& tex, const std::shared_ptr<TexBufBlock>& block,
-        const TexBufPreNode& pn, const Rect& src, const Quad& dst);
+		const TexBufPreNode& pn, const Rect& src, const Quad& dst) noexcept;
 
     bool operator == (const TexBufDrawTask& node) const;
     bool operator < (const TexBufDrawTask& node) const;
@@ -34,7 +34,7 @@ private:
     ur::TexturePtr m_tex = nullptr;
     std::shared_ptr<TexBufBlock> m_block = nullptr;
 
-    const TexBufPreNode& m_pn;
+	TexBufPreNode m_pn;
 	Rect m_src, m_dst;
 	bool m_rotate;
 

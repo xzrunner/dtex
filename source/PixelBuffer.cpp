@@ -1,15 +1,37 @@
 #include "dtex/PixelBuffer.h"
 #include "dtex/PixBufPage.h"
 #include "dtex/TextureBuffer.h"
-#include "dtex/PixBufPage.h"
+#include "dtex/TexRenderer.h"
 
-#include <assert.h>
+#include <cstdint>
+#include <limits>
+#include <new>
+#include <type_traits>
 
 namespace
 {
 
-const int MAX_NODE_SIZE = 512;
 const int PADDING = 1;
+
+class LoadDepthGuard
+{
+public:
+	explicit LoadDepthGuard(dtex::TextureBuffer& buffer) noexcept
+		: m_buffer(buffer) {}
+
+	~LoadDepthGuard()
+	{
+		if (m_active) {
+			m_buffer.AbortLoad();
+		}
+	}
+
+	void release() noexcept { m_active = false; }
+
+private:
+	dtex::TextureBuffer& m_buffer;
+	bool m_active = true;
+};
 
 }
 
@@ -30,36 +52,66 @@ PixelBuffer::~PixelBuffer()
 void PixelBuffer::Load(const ur::Device& dev, ur::Context& ctx, const uint32_t* bitmap,
                        int width, int height, uint64_t key)
 {
-	int pw = width + PADDING * 2;
-	int ph = height + PADDING * 2;
-	if (!bitmap ||
-	    (!(pw <= m_width && ph <= m_height) &&
-		 !(ph <= m_width && pw <= m_height))) {
+	const int64_t pw64 = static_cast<int64_t>(width) + PADDING * 2;
+	const int64_t ph64 = static_cast<int64_t>(height) + PADDING * 2;
+	if (!bitmap || width <= 0 || height <= 0 || pw64 <= 0 || ph64 <= 0 ||
+		pw64 > std::numeric_limits<int>::max() ||
+		ph64 > std::numeric_limits<int>::max() ||
+	    (!(pw64 <= m_width && ph64 <= m_height) &&
+		 !(ph64 <= m_width && pw64 <= m_height))) {
 		return;
 	}
+	const int pw = static_cast<int>(pw64);
+	const int ph = static_cast<int>(ph64);
 	if (Exist(key)) {
 		return;
 	}
 
-	Quad dst_pos;
+	// Allocate the two logical-index containers before the packer is mutated.
+	// After a successful map insertion, the pending-vector push is guaranteed
+	// not to allocate and Node's copy cannot throw, so a key can never become
+	// Exist() without also being queued for its first atlas publication.
+	static_assert(std::is_nothrow_copy_constructible<Node>::value,
+		"PixelBuffer::Node must support a no-throw logical commit");
+	try {
+#ifdef DTEX_ENABLE_TEST_SEAMS
+		if (m_fail_next_load_prepare > 0) {
+			--m_fail_next_load_prepare;
+			throw std::bad_alloc();
+		}
+#endif
+		if (m_new_nodes.size() == std::numeric_limits<size_t>::max() ||
+			m_all_nodes.size() == std::numeric_limits<size_t>::max()) {
+			return;
+		}
+		m_new_nodes.reserve(m_new_nodes.size() + 1);
+		m_all_nodes.reserve(m_all_nodes.size() + 1);
+	} catch (...) {
+		return;
+	}
 
-	int page_idx = -1;
-	for (size_t i = 0, n = m_pages.size(); i < n; ++i)
-    {
-        dst_pos = m_pages[i]->AddToTP(pw, ph);
-        if (dst_pos.rect.IsValid()) {
-            page_idx = i;
-            break;
-        }
-	}
-	if (page_idx < 0)
-	{
-		auto page = std::make_unique<PixBufPage>(dev, m_width, m_height);
-        dst_pos = page->AddToTP(pw, ph);
-        assert(dst_pos.rect.IsValid());
-		page_idx = m_pages.size();
-		m_pages.push_back(std::move(page));
-	}
+	try {
+		Quad dst_pos;
+
+		size_t page_idx = m_pages.size();
+		for (size_t i = 0, n = m_pages.size(); i < n; ++i)
+		{
+			dst_pos = m_pages[i]->AddToTP(pw, ph);
+			if (dst_pos.rect.IsValid()) {
+				page_idx = i;
+				break;
+			}
+		}
+		if (page_idx == m_pages.size())
+		{
+			auto page = std::make_unique<PixBufPage>(dev, m_width, m_height);
+			dst_pos = page->AddToTP(pw, ph);
+			if (!dst_pos.rect.IsValid()) {
+				return;
+			}
+			page_idx = m_pages.size();
+			m_pages.push_back(std::move(page));
+		}
 
 	// old version: rebuild
 	//if (!m_pages[page_idx]->AddToTP(pw, ph, r))
@@ -72,64 +124,109 @@ void PixelBuffer::Load(const ur::Device& dev, ur::Context& ctx, const uint32_t* 
 	//	}
 	//}
 
-	auto r_no_padding = dst_pos.rect;
-	r_no_padding.xmin += PADDING;
-	r_no_padding.ymin += PADDING;
-	r_no_padding.xmax -= PADDING;
-	r_no_padding.ymax -= PADDING;
+		auto r_no_padding = dst_pos.rect;
+		r_no_padding.xmin += PADDING;
+		r_no_padding.ymin += PADDING;
+		r_no_padding.xmax -= PADDING;
+		r_no_padding.ymax -= PADDING;
 
-	Node node({ key, static_cast<size_t>(page_idx), r_no_padding });
-	m_all_nodes.insert({ key, node });
-	m_new_nodes.push_back(node);
+		Node node({ key, static_cast<size_t>(page_idx), r_no_padding });
+		m_pages[page_idx]->UpdateBitmap(ctx, bitmap, width, height,
+			r_no_padding, dst_pos.rect);
 
-	m_pages[page_idx]->UpdateBitmap(ctx, bitmap, width, height, r_no_padding, dst_pos.rect);
+		const auto inserted = m_all_nodes.insert({ key, node });
+		if (!inserted.second) {
+			return;
+		}
+		m_new_nodes.push_back(node);
+	} catch (...) {
+		// Packer/bitmap holes are harmless and reusable space is only lost for
+		// this page. The key is not committed unless its first pending entry is
+		// guaranteed, so callers may safely retry the same key.
+		return;
+	}
 }
 
-bool PixelBuffer::Flush(ur::Context& ctx, TextureBuffer& tex_buf, TexRenderer& rd)
+PixelBuffer::FlushResult PixelBuffer::Flush(ur::Context& ctx, TextureBuffer& tex_buf, TexRenderer& rd)
 {
-	bool dirty = false;
+	FlushResult result;
 
 	if (m_new_nodes.empty()) {
-		return false;
-	}
-
-	//bool bind_fbo = false;
-	for (auto& p : m_pages) {
-		if (p->UploadTexture(ctx)) {
-			dirty = true;
-			//bind_fbo = true;
+		if (rd.HasPending()) {
+			result.success = rd.Flush(ctx);
+			result.had_work = true;
+			return result;
 		}
+		return result;
 	}
 
-    // update to texture buffer
-    tex_buf.LoadStart();
-	for (auto& n : m_new_nodes) {
-        auto tex = m_pages[n.page]->GetTexture();
-        tex_buf.Load(tex, n.region, n.key, 1, 0);
+	result.had_work = true;
+	try {
+		for (auto& p : m_pages) {
+			p->UploadTexture(ctx);
+		}
+
+		if (!tex_buf.LoadStart()) {
+			result.success = false;
+			return result;
+		}
+		LoadDepthGuard depth_guard(tex_buf);
+		for (auto& n : m_new_nodes) {
+			auto tex = m_pages[n.page]->GetTexture();
+			(void)tex_buf.Load(tex, n.region, n.key, 1, 0);
+		}
+		const bool finished = tex_buf.LoadFinish(ctx, rd);
+		depth_guard.release();
+		if (!finished) {
+			result.success = false;
+			return result;
+		}
+
+		result.success = true;
+		for (auto itr = m_new_nodes.begin(); itr != m_new_nodes.end(); ) {
+			int block_id = -1;
+			if (tex_buf.Query(itr->key, block_id)) {
+				itr = m_new_nodes.erase(itr);
+			} else {
+				result.success = false;
+				++itr;
+			}
+		}
+		return result;
+	} catch (...) {
+		result.success = false;
+		return result;
 	}
-    tex_buf.LoadFinish(ctx, rd);
-	dirty = true;
-
-	m_new_nodes.clear();
-
-//	if (bind_fbo) {
-//		RenderAPI::GetRenderContext()->UnbindPixelBuffer();
-//	}
-
-	return dirty;
 }
 
 bool PixelBuffer::QueryAndInsert(uint64_t key, float* texcoords, ur::TexturePtr& tex) const
 {
+	tex = nullptr;
+	if (!texcoords) {
+		return false;
+	}
 	auto itr = m_all_nodes.find(key);
 	if (itr == m_all_nodes.end()) {
 		return false;
 	}
 
 	auto& node = itr->second;
-	m_new_nodes.push_back(node);
+	if (node.page >= m_pages.size() || !m_pages[node.page]) {
+		return false;
+	}
+	try {
+#ifdef DTEX_ENABLE_TEST_SEAMS
+		if (m_fail_next_query_queue > 0) {
+			--m_fail_next_query_queue;
+			throw std::bad_alloc();
+		}
+#endif
+		m_new_nodes.push_back(node);
+	} catch (...) {
+		return false;
+	}
 
-    tex = m_pages[node.page]->GetTexture();
+	tex = m_pages[node.page]->GetTexture();
 
 	const Rect& r = node.region;
 	float xmin = r.xmin / static_cast<float>(m_width),
@@ -143,6 +240,18 @@ bool PixelBuffer::QueryAndInsert(uint64_t key, float* texcoords, ur::TexturePtr&
 
 	return true;
 }
+
+#ifdef DTEX_ENABLE_TEST_SEAMS
+void PixelBuffer::FailNextLoadPrepareForTest(int count) noexcept
+{
+	m_fail_next_load_prepare = count > 0 ? count : 0;
+}
+
+void PixelBuffer::FailNextQueryQueueForTest(int count) noexcept
+{
+	m_fail_next_query_queue = count > 0 ? count : 0;
+}
+#endif
 
 //void PixelBuffer::GetFirstPageTexInfo(int& id, size_t& w, size_t& h) const
 //{

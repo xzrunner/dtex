@@ -25,12 +25,25 @@ public:
     PixelBuffer(const ur::Device& dev, int width, int height);
     ~PixelBuffer();
 
+    struct FlushResult
+    {
+        bool success = true;
+        bool had_work = false;
+    };
+
     void Load(const ur::Device& dev, ur::Context& ctx, const uint32_t* bitmap,
         int width, int height, uint64_t key);
-    bool Flush(ur::Context& ctx, TextureBuffer& tex_buf, TexRenderer& rd);
+    FlushResult Flush(ur::Context& ctx, TextureBuffer& tex_buf, TexRenderer& rd);
 
     bool QueryAndInsert(uint64_t key, float* texcoords, ur::TexturePtr& tex) const;
     bool Exist(uint64_t key) const { return m_all_nodes.find(key) != m_all_nodes.end(); }
+
+#ifdef DTEX_ENABLE_TEST_SEAMS
+    // Deterministic allocation-failure hooks. These are absent from production
+    // builds; every DTex TU in a seam-enabled test binary must use the macro.
+    void FailNextLoadPrepareForTest(int count) noexcept;
+    void FailNextQueryQueueForTest(int count) noexcept;
+#endif
 
     ur::TexturePtr GetFirstPageTex() const;
     //void GetFirstPageTexInfo(int& id, size_t& w, size_t& h) const;
@@ -52,6 +65,11 @@ private:
 
     std::unordered_map<uint64_t, Node> m_all_nodes;
     mutable std::vector<Node>          m_new_nodes;
+
+#ifdef DTEX_ENABLE_TEST_SEAMS
+    int         m_fail_next_load_prepare = 0;
+    mutable int m_fail_next_query_queue = 0;
+#endif
 
 }; // PixelBuffer
 

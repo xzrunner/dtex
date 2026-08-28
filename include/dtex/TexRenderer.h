@@ -4,6 +4,7 @@
 
 #include <unirender/typedef.h>
 
+#include <cstdint>
 #include <vector>
 
 namespace ur {
@@ -22,13 +23,20 @@ class TexRenderer
 public:
     TexRenderer(const ur::Device& dev);
 
-	void Draw(ur::Context& ctx, const ur::TexturePtr& src, const Rect& src_r,
+	bool Draw(ur::Context& ctx, const ur::TexturePtr& src, const Rect& src_r,
 		const ur::TexturePtr& dst, const Rect& dst_r, bool rotate);
-    void Flush(ur::Context& ctx);
+    bool Flush(ur::Context& ctx);
+    bool HasPending() const;
+    void DiscardPending();
+#ifdef DTEX_ENABLE_TEST_SEAMS
+    void FailNextFlush(int count);
+    bool ConsumeFailNextFlush();
+    void FailNextGpuFlushForTest(int count);
+#endif
 
-	void ClearTex(ur::Context& ctx, const ur::TexturePtr& tex,
+	bool ClearTex(ur::Context& ctx, const ur::TexturePtr& tex,
         float xmin, float ymin, float xmax, float ymax) const;
-	void ClearAllTex(ur::Context& ctx, const ur::TexturePtr& tex) const;
+	bool ClearAllTex(ur::Context& ctx, const ur::TexturePtr& tex) const;
 
 private:
     void InitVertexArray(const ur::Device& dev);
@@ -42,20 +50,14 @@ private:
 
     struct VertBuffer
     {
-        void AddQuad(const float* positions, const float* texcoords);
-
-        void Reserve(size_t idx_count, size_t vtx_count);
+        bool AddQuad(const float* positions, const float* texcoords);
 
         void Clear();
 
         bool IsEmpty() const { return indices.empty(); }
 
         std::vector<Vertex>         vertices;
-        std::vector<unsigned short> indices;
-
-        unsigned short  curr_index = 0;
-        Vertex*         vert_ptr   = nullptr;
-        unsigned short* index_ptr  = nullptr;
+        std::vector<std::uint32_t>  indices;
     };
 
 private:
@@ -69,6 +71,10 @@ private:
     VertBuffer m_vert_buf;
 
     std::shared_ptr<ur::VertexArray> m_va = nullptr;
+#ifdef DTEX_ENABLE_TEST_SEAMS
+    int m_fail_next_flush = 0;
+    int m_fail_next_gpu_flush = 0;
+#endif
 
 }; // TexRenderer
 

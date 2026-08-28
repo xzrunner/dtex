@@ -8,6 +8,8 @@
 #include <unirender/Texture.h>
 
 #include <cstring>
+#include <limits>
+#include <stdexcept>
 
 namespace
 {
@@ -23,17 +25,30 @@ PixBufPage::PixBufPage(const ur::Device& dev, size_t width, size_t height)
 	: m_width(width)
 	, m_height(height)
 {
+    const size_t max_buffer_bytes = static_cast<size_t>(std::numeric_limits<int>::max());
+    if (width == 0 || height == 0 ||
+        width > static_cast<size_t>(std::numeric_limits<int16_t>::max()) ||
+        height > static_cast<size_t>(std::numeric_limits<int16_t>::max()) ||
+        width > max_buffer_bytes / 4 ||
+        height > max_buffer_bytes / (width * 4))
+    {
+        throw std::length_error("dtex pixel page dimensions are not representable");
+    }
+    const int page_width = static_cast<int>(width);
+    const int page_height = static_cast<int>(height);
+    const size_t buf_sz = width * height * 4;
+
     ur::TextureDescription desc;
     desc.target = ur::TextureTarget::Texture2D;
-    desc.width  = width;
-    desc.height = height;
+    desc.width  = page_width;
+    desc.height = page_height;
     desc.format = ur::TextureFormat::RGBA8;
     m_tex = dev.CreateTexture(desc);
 
 	m_tp = std::make_unique<TexPacker>(width, height, MAX_NODE_SIZE);
 
-    auto buf_sz = width * height * 4;
-    m_pbuf = dev.CreateWritePixelBuffer(ur::BufferUsageHint::DynamicDraw, buf_sz);
+    m_pbuf = dev.CreateWritePixelBuffer(
+        ur::BufferUsageHint::DynamicDraw, static_cast<int>(buf_sz));
     if (!m_pbuf) {
         // Metal: no PBO -> stage glyph pixels on the CPU and upload directly.
         m_cpu_buf.assign(buf_sz, 0);
@@ -49,14 +64,15 @@ Quad PixBufPage::AddToTP(size_t width, size_t height)
 
 void PixBufPage::Clear()
 {
-    auto buf_sz = m_width * m_height * 4;
+    const size_t buf_sz = m_width * m_height * 4;
     if (m_pbuf) {
-        m_pbuf->ReadFromMemory(nullptr, buf_sz, 0);
+        m_pbuf->ReadFromMemory(nullptr, static_cast<int>(buf_sz), 0);
     } else if (!m_cpu_buf.empty()) {
         memset(m_cpu_buf.data(), 0, m_cpu_buf.size());
     }
 
-    m_tex->Upload(nullptr, 0, 0, m_width, m_height);
+    m_tex->Upload(nullptr, 0, 0,
+        static_cast<int>(m_width), static_cast<int>(m_height));
 
 	m_tp->Clear();
 
@@ -66,6 +82,7 @@ void PixBufPage::Clear()
 void PixBufPage::UpdateBitmap(ur::Context& ctx, const uint32_t* bitmap, int width,
                                     int height, const Rect& pos, const Rect& dirty_r)
 {
+	(void)ctx;
 	if (!m_pbuf && m_cpu_buf.empty()) {
 		return;
 	}
@@ -82,14 +99,16 @@ void PixBufPage::UpdateBitmap(ur::Context& ctx, const uint32_t* bitmap, int widt
             uint8_t b = (src >> 8) & 0xff;
             uint8_t a = src & 0xff;
 
-            int dst_ptr = (pos.ymin + y) * m_width + pos.xmin + x;
-            bmp_buf[dst_ptr] = a << 24 | b << 16 | g << 8 | r;
+			const size_t dst_ptr =
+				static_cast<size_t>(pos.ymin + y) * m_width +
+				static_cast<size_t>(pos.xmin + x);
+			bmp_buf[dst_ptr] = a << 24 | b << 16 | g << 8 | r;
         }
     }
 
 #else
     // todo: update all, not row
-    uint32_t* line_buf = new uint32_t[width];
+    std::vector<uint32_t> line_buf(static_cast<size_t>(width));
 
 	int src_ptr = 0;
 	for (int y = 0; y < height; ++y) {
@@ -99,13 +118,14 @@ void PixBufPage::UpdateBitmap(ur::Context& ctx, const uint32_t* bitmap, int widt
 			uint8_t g = (src >> 16) & 0xff;
 			uint8_t b = (src >> 8) & 0xff;
 			uint8_t a = src & 0xff;
-			line_buf[x] = a << 24 | b << 16 | g << 8 | r;
+            line_buf[static_cast<size_t>(x)] = a << 24 | b << 16 | g << 8 | r;
 		}
         size_t off = ((pos.ymin + y) * m_width + pos.xmin) * 4;
         if (m_pbuf) {
-            m_pbuf->ReadFromMemory(line_buf, width * 4, off);
+            m_pbuf->ReadFromMemory(line_buf.data(), width * 4,
+                static_cast<int>(off));
         } else {
-            memcpy(m_cpu_buf.data() + off, line_buf, width * 4);
+            memcpy(m_cpu_buf.data() + off, line_buf.data(), width * 4);
         }
 	}
 
@@ -113,7 +133,6 @@ void PixBufPage::UpdateBitmap(ur::Context& ctx, const uint32_t* bitmap, int widt
     //m_pbuf->ReadFromMemory(line_buf, width * height * 4, (pos.ymin * m_width + pos.xmin) * 4);
     //ctx.SetUnpackRowLength(0);
 
-    delete[] line_buf;
 #endif // PBO_USE_MAP
 
 	UpdateDirtyRect(dirty_r);
@@ -136,20 +155,23 @@ bool PixBufPage::UploadTexture(ur::Context& ctx)
 		// m_width wide so they are tight for a full-page replaceRegion. (A dirty
 		// sub-rect would need a per-row copy because Texture::Upload assumes tight
 		// rows; uploading the full page each new-glyph batch is simpler and cheap.)
-		m_tex->Upload(m_cpu_buf.data(), 0, 0, (int)m_width, (int)m_height);
+		m_tex->Upload(m_cpu_buf.data(), 0, 0,
+			static_cast<int>(m_width), static_cast<int>(m_height));
 		InitDirtyRect();
 		return true;
 	}
 
-	ctx.SetUnpackRowLength(m_width);
-	int offset = (y * m_width + x) * 4;
+    ctx.SetUnpackRowLength(static_cast<int>(m_width));
+    const size_t offset_sz =
+        (static_cast<size_t>(y) * m_width + static_cast<size_t>(x)) * 4;
+    const int offset = static_cast<int>(offset_sz);
 
 #ifdef PBO_USE_MAP
     m_pbuf->Unmap();
 #else
     m_pbuf->Bind();
 #endif // PBO_USE_MAP
-    m_tex->Upload(reinterpret_cast<void*>(offset), x, y, w, h);
+    m_tex->Upload(reinterpret_cast<void*>(static_cast<std::intptr_t>(offset)), x, y, w, h);
 	m_pbuf->UnBind();
 
     ctx.SetUnpackRowLength(0);

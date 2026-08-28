@@ -8,7 +8,7 @@ namespace dtex
 {
 
 TexBufDrawTask::TexBufDrawTask(const ur::TexturePtr& tex, const std::shared_ptr<TexBufBlock>& block,
-                               const TexBufPreNode& pn, const Rect& src, const Quad& dst)
+                               const TexBufPreNode& pn, const Rect& src, const Quad& dst) noexcept
 	: m_tex(tex)
 	, m_block(block)
 	, m_pn(pn)
@@ -30,9 +30,11 @@ bool TexBufDrawTask::operator < (const TexBufDrawTask& node) const
 
 bool TexBufDrawTask::Draw(ur::Context& ctx, TexRenderer& rd) const
 {
-    rd.Draw(ctx, m_pn.GetTexture(), m_src, m_tex, m_dst, m_rotate);
+    if (!rd.Draw(ctx, m_pn.GetTexture(), m_src, m_tex, m_dst, m_rotate)) {
+        return false;
+    }
 	if (m_pn.Extrude() != 0) {
-        DrawExtrude(ctx, rd, m_pn.GetTexture(), m_src, m_dst, m_rotate, m_pn.Extrude());
+        return DrawExtrude(ctx, rd, m_pn.GetTexture(), m_src, m_dst, m_rotate, m_pn.Extrude());
 	}
 	return true;
 }
@@ -42,96 +44,57 @@ bool TexBufDrawTask::DrawExtrude(ur::Context& ctx, TexRenderer& rd, const ur::Te
 {
 	static const int SRC_EXTRUDE = 1;
 
-    const auto src_w = src_tex->GetWidth();
-    const auto src_h = src_tex->GetHeight();
+	const int sx0 = src_r.xmin;
+	const int sy0 = src_r.ymin;
+	const int sx1 = src_r.xmax;
+	const int sy1 = src_r.ymax;
+	const int dx0 = dst_r.xmin;
+	const int dy0 = dst_r.ymin;
+	const int dx1 = dst_r.xmax;
+	const int dy1 = dst_r.ymax;
 
-	Rect src, dst;
-	if (!rotate)
-	{
-		// left
-		src.xmin = 0; src.xmax = SRC_EXTRUDE; src.ymin = 0; src.ymax = src_h;
-		dst = dst_r; dst.xmax = dst.xmin; dst.xmin -= extrude;
-		rd.Draw(ctx, src_tex, src, m_tex, dst, rotate);
+	auto draw = [&](int src_xmin, int src_ymin, int src_xmax, int src_ymax,
+		int dst_xmin, int dst_ymin, int dst_xmax, int dst_ymax) {
+		Rect src, dst;
+		src.xmin = static_cast<int16_t>(src_xmin);
+		src.ymin = static_cast<int16_t>(src_ymin);
+		src.xmax = static_cast<int16_t>(src_xmax);
+		src.ymax = static_cast<int16_t>(src_ymax);
+		dst.xmin = static_cast<int16_t>(dst_xmin);
+		dst.ymin = static_cast<int16_t>(dst_ymin);
+		dst.xmax = static_cast<int16_t>(dst_xmax);
+		dst.ymax = static_cast<int16_t>(dst_ymax);
+		return rd.Draw(ctx, src_tex, src, m_tex, dst, rotate);
+	};
 
-		// right
-		src.xmin = src_w - SRC_EXTRUDE; src.xmax = src_w - SRC_EXTRUDE; src.ymin = 0; src.ymax = src_h;
-		dst = dst_r; dst.xmin = dst.xmax; dst.xmax += extrude;
-		rd.Draw(ctx, src_tex, src, m_tex, dst, rotate);
-
-		// top
-		src.xmin = 0; src.xmax = src_w; src.ymin = src_h - SRC_EXTRUDE; src.ymax = src_h;
-		dst = dst_r; dst.ymin = dst.ymax; dst.ymax += extrude;
-		rd.Draw(ctx, src_tex, src, m_tex, dst, rotate);
-
-		// bottom
-		src.xmin = 0; src.xmax = src_w; src.ymin = 0; src.ymax = SRC_EXTRUDE;
-		dst = dst_r; dst.ymax = dst.ymin; dst.ymin -= extrude;
-		rd.Draw(ctx, src_tex, src, m_tex, dst, rotate);
-
-		// left-top
-		src.xmin = 0; src.xmax = SRC_EXTRUDE; src.ymin = src_h - SRC_EXTRUDE; src.ymax = src_h;
-		dst = dst_r; dst.xmax = dst.xmin; dst.xmin -= extrude; dst.ymin = dst.ymax; dst.ymax += extrude;
-		rd.Draw(ctx, src_tex, src, m_tex, dst, rotate);
-
-		// right-top
-		src.xmin = src_w - SRC_EXTRUDE; src.xmax = src_w; src.ymin = src_h - SRC_EXTRUDE; src.ymax = src_h;
-		dst = dst_r; dst.xmin = dst.xmax; dst.xmax += extrude; dst.ymin = dst.ymax; dst.ymax += extrude;
-		rd.Draw(ctx, src_tex, src, m_tex, dst, rotate);
-
-		// left-bottom
-		src.xmin = 0; src.xmax = SRC_EXTRUDE; src.ymin = 0; src.ymax = SRC_EXTRUDE;
-		dst = dst_r; dst.xmax = dst.xmin; dst.xmin -= extrude; dst.ymax = dst.ymin; dst.ymin -= extrude;
-		rd.Draw(ctx, src_tex, src, m_tex, dst, rotate);
-
-		// right-bottom
-		src.xmin = src_w - SRC_EXTRUDE; src.xmax = src_w; src.ymin = 0; src.ymax = SRC_EXTRUDE;
-		dst = dst_r; dst.xmin = dst.xmax; dst.xmax += extrude; dst.ymax = dst.ymin; dst.ymin -= extrude;
-		rd.Draw(ctx, src_tex, src, m_tex, dst, rotate);
-	}
-	else
-	{
-		// left
-		src.xmin = 0; src.xmax = SRC_EXTRUDE; src.ymin = 0; src.ymax = src_h;
-		dst = dst_r; dst.ymin = dst.ymax; dst.ymax += extrude;
-		rd.Draw(ctx, src_tex, src, m_tex, dst, rotate);
-
-		// right
-		src.xmin = src_w - SRC_EXTRUDE; src.xmax = src_w; src.ymin = 0; src.ymax = src_h;
-		dst = dst_r; dst.ymax = dst.ymin; dst.ymin -= extrude;
-		rd.Draw(ctx, src_tex, src, m_tex, dst, rotate);
-
-		// top
-		src.xmin = 0; src.xmax = src_w; src.ymin = src_h - SRC_EXTRUDE; src.ymax = src_h;
-		dst = dst_r; dst.xmin = dst.xmax; dst.xmax += extrude;
-		rd.Draw(ctx, src_tex, src, m_tex, dst, rotate);
-
-		// bottom
-		src.xmin = 0; src.xmax = src_w; src.ymin = 0; src.ymax = SRC_EXTRUDE;
-		dst = dst_r; dst.xmax = dst.xmin; dst.xmin -= extrude;
-		rd.Draw(ctx, src_tex, src, m_tex, dst, rotate);
-
-		// left-top
-		src.xmin = 0; src.xmax = SRC_EXTRUDE; src.ymin = src_h - SRC_EXTRUDE; src.ymax = src_h;
-		dst = dst_r; dst.xmin = dst.xmax; dst.xmax += extrude; dst.ymin = dst.ymax; dst.ymax += extrude;
-		rd.Draw(ctx, src_tex, src, m_tex, dst, rotate);
-
-		// right-top
-		src.xmin = src_w - SRC_EXTRUDE; src.xmax = src_w; src.ymin = src_h - SRC_EXTRUDE; src.ymax = src_h;
-		dst = dst_r; dst.xmin = dst.xmax; dst.xmax += extrude; dst.ymax = dst.ymin; dst.ymin -= extrude;
-		rd.Draw(ctx, src_tex, src, m_tex, dst, rotate);
-
-		// left-bottom
-		src.xmin = 0; src.xmax = SRC_EXTRUDE; src.ymin = 0; src.ymax = SRC_EXTRUDE;
-		dst = dst_r; dst.xmax = dst.xmin; dst.xmin -= extrude; dst.ymin = dst.ymax; dst.ymax += extrude;
-		rd.Draw(ctx, src_tex, src, m_tex, dst, rotate);
-
-		// right-bottom
-		src.xmin = src_w - SRC_EXTRUDE; src.xmax = src_w; src.ymin = 0; src.ymax = SRC_EXTRUDE;
-		dst = dst_r; dst.xmax = dst.xmin; dst.xmin -= extrude; dst.ymax = dst.ymin; dst.ymin -= extrude;
-		rd.Draw(ctx, src_tex, src, m_tex, dst, rotate);
+	if (!rotate) {
+		return draw(sx0, sy0, sx0 + SRC_EXTRUDE, sy1, dx0 - extrude, dy0, dx0, dy1) &&
+			draw(sx1 - SRC_EXTRUDE, sy0, sx1, sy1, dx1, dy0, dx1 + extrude, dy1) &&
+			draw(sx0, sy1 - SRC_EXTRUDE, sx1, sy1, dx0, dy1, dx1, dy1 + extrude) &&
+			draw(sx0, sy0, sx1, sy0 + SRC_EXTRUDE, dx0, dy0 - extrude, dx1, dy0) &&
+			draw(sx0, sy1 - SRC_EXTRUDE, sx0 + SRC_EXTRUDE, sy1,
+				dx0 - extrude, dy1, dx0, dy1 + extrude) &&
+			draw(sx1 - SRC_EXTRUDE, sy1 - SRC_EXTRUDE, sx1, sy1,
+				dx1, dy1, dx1 + extrude, dy1 + extrude) &&
+			draw(sx0, sy0, sx0 + SRC_EXTRUDE, sy0 + SRC_EXTRUDE,
+				dx0 - extrude, dy0 - extrude, dx0, dy0) &&
+			draw(sx1 - SRC_EXTRUDE, sy0, sx1, sy0 + SRC_EXTRUDE,
+				dx1, dy0 - extrude, dx1 + extrude, dy0);
 	}
 
-	return true;
+	return draw(sx0, sy0, sx0 + SRC_EXTRUDE, sy1, dx0, dy1, dx1, dy1 + extrude) &&
+		draw(sx1 - SRC_EXTRUDE, sy0, sx1, sy1, dx0, dy0 - extrude, dx1, dy0) &&
+		draw(sx0, sy1 - SRC_EXTRUDE, sx1, sy1, dx1, dy0, dx1 + extrude, dy1) &&
+		draw(sx0, sy0, sx1, sy0 + SRC_EXTRUDE, dx0 - extrude, dy0, dx0, dy1) &&
+		draw(sx0, sy1 - SRC_EXTRUDE, sx0 + SRC_EXTRUDE, sy1,
+			dx1, dy1, dx1 + extrude, dy1 + extrude) &&
+		draw(sx1 - SRC_EXTRUDE, sy1 - SRC_EXTRUDE, sx1, sy1,
+			dx1, dy0 - extrude, dx1 + extrude, dy0) &&
+		draw(sx0, sy0, sx0 + SRC_EXTRUDE, sy0 + SRC_EXTRUDE,
+			dx0 - extrude, dy1, dx0, dy1 + extrude) &&
+		draw(sx1 - SRC_EXTRUDE, sy0, sx1, sy0 + SRC_EXTRUDE,
+			dx0 - extrude, dy0 - extrude, dx0, dy0);
+
 }
 
 }

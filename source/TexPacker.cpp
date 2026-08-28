@@ -2,12 +2,20 @@
 
 #include <texpack.h>
 
+#include <limits>
+
 namespace dtex
 {
 
 TexPacker::TexPacker(size_t width, size_t height, size_t capacity)
 {
-	m_tp = texpack_create(width, height, capacity);
+	const size_t max_int = static_cast<size_t>(std::numeric_limits<int>::max());
+	if (width == 0 || height == 0 || capacity == 0 ||
+		width > max_int || height > max_int || capacity > max_int) {
+		return;
+	}
+	m_tp = texpack_create(static_cast<int>(width), static_cast<int>(height),
+		static_cast<int>(capacity));
 }
 
 TexPacker::~TexPacker()
@@ -21,11 +29,13 @@ Quad TexPacker::Add(size_t width, size_t height, bool rotate)
 {
     Quad ret;
 
-    if (!m_tp) {
+	const size_t max_int = static_cast<size_t>(std::numeric_limits<int>::max());
+	if (!m_tp || width == 0 || height == 0 || width > max_int || height > max_int) {
         return ret;
     }
 
-	auto pos = texpack_add(m_tp, width, height, rotate);
+	auto pos = texpack_add(m_tp, static_cast<int>(width),
+		static_cast<int>(height), rotate);
     if (!pos) {
         return ret;
     }

@@ -14,8 +14,38 @@
 #include <unirender/VertexInputAttribute.h>
 #include <shadertrans/ShaderTrans.h>
 
+#include <cstdint>
+#include <cmath>
+#include <limits>
+#include <memory>
+
 namespace
 {
+
+struct LogicalTargetGuard
+{
+    ur::Context& ctx;
+    std::shared_ptr<ur::Framebuffer> framebuffer;
+    int x = 0;
+    int y = 0;
+    int w = 0;
+    int h = 0;
+
+    explicit LogicalTargetGuard(ur::Context& context)
+        : ctx(context)
+        , framebuffer(context.GetFramebuffer())
+    {
+        ctx.GetViewport(x, y, w, h);
+    }
+
+    ~LogicalTargetGuard()
+    {
+        ctx.SetFramebuffer(framebuffer);
+        ctx.SetViewport(x, y, w, h);
+        ctx.CommitFramebuffer();
+        ctx.CommitViewport();
+    }
+};
 
 const char* vs = R"(
 #version 330 core
@@ -62,12 +92,26 @@ TexRenderer::TexRenderer(const ur::Device& dev)
     InitVertexArray(dev);
 }
 
-void TexRenderer::Draw(ur::Context& ctx, const ur::TexturePtr& src, const Rect& src_r,
+bool TexRenderer::Draw(ur::Context& ctx, const ur::TexturePtr& src, const Rect& src_r,
                        const ur::TexturePtr& dst, const Rect& dst_r, bool rotate)
 {
+    if (!src || !dst || src->GetWidth() <= 0 || src->GetHeight() <= 0 ||
+        dst->GetWidth() <= 0 || dst->GetHeight() <= 0 ||
+        src_r.xmin < 0 || src_r.ymin < 0 ||
+        src_r.xmax <= src_r.xmin || src_r.ymax <= src_r.ymin ||
+        src_r.xmax > src->GetWidth() || src_r.ymax > src->GetHeight() ||
+        dst_r.xmin < 0 || dst_r.ymin < 0 ||
+        dst_r.xmax <= dst_r.xmin || dst_r.ymax <= dst_r.ymin ||
+        dst_r.xmax > dst->GetWidth() || dst_r.ymax > dst->GetHeight())
+    {
+        return false;
+    }
     if (dst != m_dst_texture || src != m_src_texture)
     {
-        Flush(ctx);
+        if (!Flush(ctx))
+        {
+            return false;
+        }
 
         m_dst_texture = dst;
         m_src_texture = src;
@@ -106,42 +150,94 @@ void TexRenderer::Draw(ur::Context& ctx, const ur::TexturePtr& src, const Rect& 
 	texcoords[4] = src_xmax; texcoords[5] = src_ymax;
 	texcoords[6] = src_xmin; texcoords[7] = src_ymax;
 
-    m_vert_buf.AddQuad(vertices, texcoords);
+    return m_vert_buf.AddQuad(vertices, texcoords);
 }
 
-void TexRenderer::Flush(ur::Context& ctx)
+void TexRenderer::DiscardPending()
 {
-    if (m_vert_buf.IsEmpty()) {
-        return;
+    m_vert_buf.Clear();
+    m_src_texture = nullptr;
+    m_dst_texture = nullptr;
+}
+
+#ifdef DTEX_ENABLE_TEST_SEAMS
+void TexRenderer::FailNextFlush(int count)
+{
+    m_fail_next_flush = count > 0 ? count : 0;
+}
+
+bool TexRenderer::ConsumeFailNextFlush()
+{
+    if (m_fail_next_flush > 0) {
+        --m_fail_next_flush;
+        return false;
     }
+    return true;
+}
+
+void TexRenderer::FailNextGpuFlushForTest(int count)
+{
+    m_fail_next_gpu_flush = count > 0 ? count : 0;
+}
+#endif
+
+bool TexRenderer::HasPending() const
+{
+    return !m_vert_buf.IsEmpty();
+}
+
+bool TexRenderer::Flush(ur::Context& ctx)
+{
+#ifdef DTEX_ENABLE_TEST_SEAMS
+    if (m_fail_next_gpu_flush > 0) {
+        --m_fail_next_gpu_flush;
+        return false;
+    }
+    if (m_fail_next_flush > 0) {
+        --m_fail_next_flush;
+        return false;
+    }
+#endif
+    if (m_vert_buf.IsEmpty()) {
+        return true;
+    }
+
+    LogicalTargetGuard guard(ctx);
 
     const auto type = ur::AttachmentType::Color0;
     m_rt->SetAttachment(type, ur::TextureTarget::Texture2D, m_dst_texture, nullptr);
 
-    auto ibuf_sz = sizeof(unsigned short) * m_vert_buf.indices.size();
+    ctx.SetFramebuffer(m_rt);
+    if (!ctx.CheckRenderTargetStatus()) {
+        return false;
+    }
+
+    if (m_vert_buf.indices.size() > static_cast<size_t>(std::numeric_limits<int>::max()) / sizeof(std::uint32_t) ||
+        m_vert_buf.vertices.size() > static_cast<size_t>(std::numeric_limits<int>::max()) / sizeof(Vertex) ||
+        m_vert_buf.indices.size() > static_cast<size_t>(std::numeric_limits<int>::max()))
+    {
+        return false;
+    }
+    const size_t ibuf_bytes = sizeof(std::uint32_t) * m_vert_buf.indices.size();
+    const size_t vbuf_bytes = sizeof(Vertex) * m_vert_buf.vertices.size();
+    const int ibuf_sz = static_cast<int>(ibuf_bytes);
     auto ibuf = m_va->GetIndexBuffer();
-    ibuf->SetCount(m_vert_buf.indices.size());
+    ibuf->SetCount(static_cast<int>(m_vert_buf.indices.size()));
     ibuf->Reserve(ibuf_sz);
     ibuf->ReadFromMemory(m_vert_buf.indices.data(), ibuf_sz, 0);
     m_va->SetIndexBuffer(ibuf);
 
-    auto vbuf_sz = sizeof(Vertex) * m_vert_buf.vertices.size();
+    const int vbuf_sz = static_cast<int>(vbuf_bytes);
     auto vbuf = m_va->GetVertexBuffer();
     vbuf->Reserve(vbuf_sz);
     vbuf->ReadFromMemory(m_vert_buf.vertices.data(), vbuf_sz, 0);
     m_va->SetVertexBuffer(vbuf);
-
-    m_vert_buf.Clear();
 
     m_va->SetVertexBufferAttrs({
         std::make_shared<ur::VertexInputAttribute>(0, ur::ComponentDataType::Float, 2, 0, 16),
         std::make_shared<ur::VertexInputAttribute>(1, ur::ComponentDataType::Float, 2, 8, 16)
     });
 
-    int x, y, w, h;
-    ctx.GetViewport(x, y, w, h);
-
-    ctx.SetFramebuffer(m_rt);
     ctx.SetViewport(0, 0, m_dst_texture->GetWidth(), m_dst_texture->GetHeight());
 
     ctx.SetTexture(0, m_src_texture);
@@ -155,21 +251,30 @@ void TexRenderer::Flush(ur::Context& ctx)
     ds.render_state = rs;
     ds.vertex_array = m_va;
     ctx.Draw(ur::PrimitiveType::Triangles, ds, nullptr);
-
-    ctx.SetFramebuffer(nullptr);
-    ctx.SetViewport(x, y, w, h);
+    m_vert_buf.Clear();
+    return true;
 }
 
-void TexRenderer::ClearTex(ur::Context& ctx, const ur::TexturePtr& tex,
+bool TexRenderer::ClearTex(ur::Context& ctx, const ur::TexturePtr& tex,
                            float xmin, float ymin, float xmax, float ymax) const
 {
-    const auto type = ur::AttachmentType::Color0;
-    m_rt->SetAttachment(type, ur::TextureTarget::Texture2D, tex, nullptr);
-    if (!ctx.CheckRenderTargetStatus()) {
-        return;
+    if (!tex || tex->GetWidth() <= 0 || tex->GetHeight() <= 0 ||
+        !std::isfinite(xmin) || !std::isfinite(ymin) ||
+        !std::isfinite(xmax) || !std::isfinite(ymax) ||
+        xmin < 0.0f || ymin < 0.0f || xmax > 1.0f || ymax > 1.0f ||
+        xmax <= xmin || ymax <= ymin)
+    {
+        return false;
     }
 
+    LogicalTargetGuard guard(ctx);
+
+    const auto type = ur::AttachmentType::Color0;
+    m_rt->SetAttachment(type, ur::TextureTarget::Texture2D, tex, nullptr);
     ctx.SetFramebuffer(m_rt);
+    if (!ctx.CheckRenderTargetStatus()) {
+        return false;
+    }
 
     ur::ClearState cs;
 
@@ -177,29 +282,37 @@ void TexRenderer::ClearTex(ur::Context& ctx, const ur::TexturePtr& tex,
 	int w = tex->GetWidth(),
 		h = tex->GetHeight();
     cs.scissor_test.rect.x = static_cast<int>(w * xmin);
-    cs.scissor_test.rect.y = static_cast<int>(h * xmin);
+    cs.scissor_test.rect.y = static_cast<int>(h * ymin);
     cs.scissor_test.rect.w = static_cast<int>(w * (xmax - xmin));
     cs.scissor_test.rect.h = static_cast<int>(h * (ymax - ymin));
 
     cs.color.FromRGBA(0);
 
     ctx.Clear(cs);
+    return true;
 }
 
-void TexRenderer::ClearAllTex(ur::Context& ctx, const ur::TexturePtr& tex) const
+bool TexRenderer::ClearAllTex(ur::Context& ctx, const ur::TexturePtr& tex) const
 {
-    const auto type = ur::AttachmentType::Color0;
-    m_rt->SetAttachment(type, ur::TextureTarget::Texture2D, tex, nullptr);
-    if (!ctx.CheckRenderTargetStatus()) {
-        return;
+    if (!tex || tex->GetWidth() <= 0 || tex->GetHeight() <= 0)
+    {
+        return false;
     }
 
+    LogicalTargetGuard guard(ctx);
+
+    const auto type = ur::AttachmentType::Color0;
+    m_rt->SetAttachment(type, ur::TextureTarget::Texture2D, tex, nullptr);
     ctx.SetFramebuffer(m_rt);
+    if (!ctx.CheckRenderTargetStatus()) {
+        return false;
+    }
 
     ur::ClearState cs;
     cs.color.FromRGBA(0);
 
     ctx.Clear(cs);
+    return true;
 }
 
 void TexRenderer::InitVertexArray(const ur::Device& dev)
@@ -209,6 +322,7 @@ void TexRenderer::InitVertexArray(const ur::Device& dev)
     auto usage = ur::BufferUsageHint::StaticDraw;
 
     auto ibuf = dev.CreateIndexBuffer(usage, 0);
+    ibuf->SetDataType(ur::IndexBufferDataType::UnsignedInt);
     m_va->SetIndexBuffer(ibuf);
 
     auto vbuf = dev.CreateVertexBuffer(ur::BufferUsageHint::StaticDraw, 0);
@@ -219,44 +333,43 @@ void TexRenderer::InitVertexArray(const ur::Device& dev)
 // class TexRenderer::VertBuffer
 //////////////////////////////////////////////////////////////////////////
 
-void TexRenderer::VertBuffer::
+bool TexRenderer::VertBuffer::
 AddQuad(const float* positions, const float* texcoords)
 {
-    Reserve(6, 4);
+    const size_t old_vertices = vertices.size();
+    const size_t old_indices = indices.size();
+    if (old_vertices > static_cast<size_t>(std::numeric_limits<std::uint32_t>::max()) - 4 ||
+        old_indices > std::numeric_limits<size_t>::max() - 6) {
+        return false;
+    }
+    try {
+        vertices.resize(old_vertices + 4);
+        indices.resize(old_indices + 6);
+    } catch (...) {
+        vertices.resize(old_vertices);
+        indices.resize(old_indices);
+        return false;
+    }
 
-    index_ptr[0] = curr_index;
-    index_ptr[1] = curr_index + 1;
-    index_ptr[2] = curr_index + 2;
-    index_ptr[3] = curr_index;
-    index_ptr[4] = curr_index + 2;
-    index_ptr[5] = curr_index + 3;
-    index_ptr += 6;
+    const auto base = static_cast<std::uint32_t>(old_vertices);
+    indices[old_indices + 0] = base;
+    indices[old_indices + 1] = base + 1;
+    indices[old_indices + 2] = base + 2;
+    indices[old_indices + 3] = base;
+    indices[old_indices + 4] = base + 2;
+    indices[old_indices + 5] = base + 3;
 
     int ptr = 0;
     for (int i = 0; i < 4; ++i)
     {
-        auto& v = vert_ptr[i];
+        auto& v = vertices[old_vertices + static_cast<size_t>(i)];
         v.pos[0] = positions[ptr];
         v.pos[1] = positions[ptr + 1];
         v.uv[0]  = texcoords[ptr];
         v.uv[1]  = texcoords[ptr + 1];
         ptr += 2;
     }
-    vert_ptr += 4;
-
-    curr_index += 4;
-}
-
-void TexRenderer::VertBuffer::
-Reserve(size_t idx_count, size_t vtx_count)
-{
-    size_t sz = vertices.size();
-    vertices.resize(sz + vtx_count);
-    vert_ptr = vertices.data() + sz;
-
-    sz = indices.size();
-    indices.resize(sz + idx_count);
-    index_ptr = indices.data() + sz;
+    return true;
 }
 
 void TexRenderer::VertBuffer::
@@ -264,10 +377,6 @@ Clear()
 {
     vertices.resize(0);
     indices.resize(0);
-
-    curr_index = 0;
-    vert_ptr = nullptr;
-    index_ptr = nullptr;
 }
 
 }
